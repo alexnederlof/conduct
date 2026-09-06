@@ -163,7 +163,6 @@ describe('local presenter', () => {
     expect(font.headers.get('Content-Type')).toBe('font/woff2');
     expect(font.headers.get('Access-Control-Allow-Origin')).toBe('*');
     expect((await font.arrayBuffer()).byteLength).toBeGreaterThan(1000);
-    expect(css).toContain('--conduct-indigo: #0723d8');
   });
   test('prevents using the source file as feedback output', async () => {
     const app = await fixture();

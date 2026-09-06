@@ -2,6 +2,27 @@
 
 [← Back to Conduct](../README.md)
 
+## Do we need npm publication?
+
+**No. GitHub Releases already provide everything needed to distribute Conduct.** `npx` accepts a package archive URL as well as an npm package name. The existing release workflow attaches `conduct.tgz`, so users with Node.js 20+ and npm can run:
+
+```sh
+npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md
+```
+
+This does not require publishing Conduct to npm, an npm account, a GitHub login, Git, or a global Bun installation. npm still downloads the package's public dependencies, including its bundled Bun runtime. Use the native executable if you want to run without Node or npm too.
+
+| Distribution                        | Best fit                                    | npm publication required? |
+| ----------------------------------- | ------------------------------------------- | ------------------------- |
+| GitHub release asset: `conduct.tgz` | Stable releases through `npx`               | No                        |
+| GitHub repository or commit         | Trying development changes through `npx`    | No                        |
+| GitHub release executable           | Running without Node.js or Bun installed    | No                        |
+| `@alexnederlof/conduct@latest`      | A shorter command and npm version discovery | Yes                       |
+
+Use **release assets** for public installation. The temporary **Actions artifacts** in the build workflow are intermediate files with seven-day retention, and the native executable artifacts are not npm packages. The release job copies the tested executables and the npm-compatible archive into a public GitHub release.
+
+`releases/latest/download` redirects to the latest stable GitHub release when fetched. Package managers can reuse cached installations; for a specific version, use `releases/download/v0.1.0/conduct.tgz`. The short npm `@latest` syntax only works after publication to the npm registry. See [npm's supported package specifiers](https://docs.npmjs.com/cli/v11/using-npm/package-spec/).
+
 ## Run directly from GitHub
 
 With Node.js 20+ and npm, you can use the current default branch without installing Bun:
@@ -87,12 +108,23 @@ To approve a contribution:
 
 Approval starts the tests; it does not approve or merge the pull request. GitHub allows maintainers with write access to approve runs. Currently the repository owner is the only maintainer; adding other writers gives them this ability too. If you move or fork the repository, set this under **Settings → Actions → General → Approval for running fork pull request workflows from contributors**.
 
+### Protection for main
+
+The repository's branch protection requires a pull request, a branch up to date with `main`, resolved review conversations, and these checks from the GitHub Actions app:
+
+- `Tests (ubuntu-latest, Bun 1.3.14)`
+- `Tests (ubuntu-latest, Bun 1.4.2)`
+- `Tests (macos-latest, Bun 1.3.14)`
+- `Tests (macos-latest, Bun 1.4.2)`
+
+The rules apply to administrators too. Force-pushes and deletion of `main` are blocked. No additional approving reviewer is required while there is only one maintainer; this allows the maintainer's own tested PRs to merge. Update the required check names in branch protection if the CI matrix changes. These settings live on GitHub and are separate from the approval required to run external contributors' workflows.
+
 ## Make a release
 
 The [Build and release workflow](https://github.com/alexnederlof/conduct/blob/main/.github/workflows/release.yml) is manual and checks that the actor is the repository owner and the selected branch is `main`. It runs tests, builds and smoke-tests all four executables, then publishes a GitHub release only if every build succeeds. No pull request triggers this workflow.
 
 1. Choose a new stable version in `package.json` and commit it with the lockfile changes, if any.
-2. Push to `main` and wait for CI to pass.
+2. Open a pull request, pass the required checks, and merge it into `main`. Wait for CI on the resulting `main` commit to pass.
 3. Open **Actions → Build and release → Run workflow** with `main` selected.
 4. The workflow creates `v<package-version>` at that exact commit and attaches executables, the source package, checksums, and notices. An existing release is never overwritten.
 
@@ -106,6 +138,28 @@ bun publish --access public
 ```
 
 npm may require a one-time code for publication. Keep authentication outside the repository. For a future automated npm workflow, configure npm trusted publishing for this repository instead of storing a long-lived registry token.
+
+### Optional: npm trusted publishing
+
+Trusted publishing lets an authorized GitHub workflow authenticate to npm with a short-lived OIDC identity. It is an optional way to automate npm registry releases; the current workflow publishes GitHub Releases only.
+
+1. Publish the first version of `@alexnederlof/conduct` using the manual steps above.
+2. Add an npm publishing job to `.github/workflows/release.yml` after the successful GitHub release job. Keep the existing owner and `main` restrictions. Use a GitHub-hosted runner, Node.js 22.14+ and npm 11.5.1+, and give that job `contents: read` and `id-token: write`. Install and test with Bun, then run `npm publish --access public`. Use npm for the OIDC publishing step; no `NPM_TOKEN` or `NODE_AUTH_TOKEN` secret is needed.
+3. In the npm package's **Settings → Trusted publishing**, add **GitHub Actions** with these exact values:
+
+   | Field                | Value                                                                                |
+   | -------------------- | ------------------------------------------------------------------------------------ |
+   | Organization or user | `alexnederlof`                                                                       |
+   | Repository           | `conduct`                                                                            |
+   | Workflow filename    | `release.yml`                                                                        |
+   | Environment          | Leave empty unless the publishing job declares an environment; then match it exactly |
+   | Allowed actions      | Enable direct publishing with `npm publish`                                          |
+
+4. Merge a version bump and run the release workflow. Confirm the new version appears on npm. After the first successful trusted publication, set npm's publishing access to **Require two-factor authentication and disallow tokens**.
+
+The workflow extension and npm settings above are optional setup steps, not currently enabled. The repository URL in `package.json` already points to the correct repository. See [npm's trusted publishing guide](https://docs.npmjs.com/trusted-publishers/) for the current requirements and settings.
+
+### Local builds
 
 To build or test locally:
 

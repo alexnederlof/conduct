@@ -48,7 +48,7 @@ Use Bun for scripts, dependencies, tests, and bundling. Prefer `Bun.file()` and 
 ## Making changes
 
 - Match the surrounding TypeScript and formatting. Prefer small, clear functions; avoid `any` casts, redundant checks, and comments that only repeat the code.
-- Reuse `conduct/ui` components and semantic theme tokens. Preserve locally bundled Inter, comfortable reading width, soft corners, and restrained accents.
+- Reuse `conduct/ui` components and semantic theme tokens. Preserve the warm paper backgrounds, charcoal text, muted pine accents, locally bundled Inter, comfortable reading width, and soft corners. Keep comment highlights amber and suggested additions/deletions sage and clay. Review controls belong in the left sidebar, with an icon rail on narrow screens; preserve the document's vertical reading space.
 - Use `rg` for searches. Put temporary files, browser fixtures, package archives, and review artifacts in the ignored `.temp/` directory, never in the system temporary directory.
 - Add regression tests for changed behavior where they meaningfully catch failures. Run `bun run check` before handing off code changes. For UI changes, also verify the relevant flow in a real browser and check console errors.
 - Test installation commands with isolated directories under `.temp/`. Do not change a contributor's real agent settings just to test an installer.

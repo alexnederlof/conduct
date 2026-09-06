@@ -207,7 +207,7 @@ function App() {
         setSelection({
           anchor: message.anchor,
           x: Math.min(Math.max(rect.left + message.rect.x, 16), innerWidth - 380),
-          y: Math.min(Math.max(rect.top + message.rect.bottom + 12, 90), innerHeight - 440),
+          y: Math.min(Math.max(rect.top + message.rect.bottom + 12, 16), innerHeight - 440),
         });
         setDraftKind(mode === 'edit' ? 'edit' : 'comment');
         setBody('');
@@ -319,40 +319,79 @@ function App() {
   const sent = review.status === 'submitted' && !notesDirty.current;
   const plan = review.mode === 'plan';
   const complete = plan && review.status === 'submitted';
+  const reviewStatus = review.stale
+    ? 'Source changed'
+    : busy
+      ? 'Saving…'
+      : sent
+        ? complete
+          ? 'Review complete'
+          : `Round ${review.roundCount} sent`
+        : notesDirty.current || selection
+          ? 'Draft in progress'
+          : 'Saved locally';
+  const sendLabel = plan
+    ? complete
+      ? review.decision === 'approved'
+        ? 'Approved'
+        : 'Changes requested'
+      : 'Approve plan'
+    : sent
+      ? 'Sent to agent'
+      : 'Send to agent';
+  const planMessage = complete
+    ? review.decision === 'approved'
+      ? 'Approval recorded. You can return to Claude.'
+      : 'Changes requested. Your inline feedback is returning to Claude for revision.'
+    : 'Claude is waiting for your review. Read, leave feedback, then approve or request changes.';
   const title = review.source.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   return (
     <div className={`app ${plan ? 'plan-review' : ''} ${focused ? 'is-focused' : ''}`}>
-      <header className="app-header">
-        <div className="header-document">
-          <a
-            className="brand"
-            href="#"
-            onClick={(event) => event.preventDefault()}
-            aria-label="Conduct"
-          >
-            <span className="brand-mark">C</span>
-            <span className="brand-name">Conduct</span>
-          </a>
-          <span className="header-divider" />
-          <h1 title={review.source.name}>{title}</h1>
+      <aside className="app-sidebar" aria-label="Review controls">
+        <a
+          className="brand"
+          href="#"
+          onClick={(event) => event.preventDefault()}
+          aria-label="Conduct"
+        >
+          <span className="brand-mark">C</span>
+          <span className="sidebar-label brand-name">Conduct</span>
+        </a>
+        <div className="sidebar-document" title={review.source.name}>
+          <Icon name="file" size={18} />
+          <div className="sidebar-label">
+            <span className="sidebar-caption">{plan ? 'Plan review' : 'Your document'}</span>
+            <h1>{title}</h1>
+          </div>
         </div>
-        <div className="header-actions">
-          <span className="review-status" role="status">
-            {review.stale
-              ? 'Source changed'
-              : busy
-                ? 'Saving…'
-                : sent
-                  ? complete
-                    ? 'Review complete'
-                    : `Round ${review.roundCount} sent`
-                  : notesDirty.current || selection
-                    ? 'Draft in progress'
-                    : 'Saved locally'}
-          </span>
+        <nav className="review-tools" aria-label="Review mode">
+          <span className="sidebar-caption sidebar-label">Review</span>
+          {(['comment', 'edit', 'browse'] as const).map((item) => (
+            <button
+              key={item}
+              disabled={complete}
+              aria-pressed={mode === item}
+              aria-label={item === 'comment' ? 'Comment' : item === 'edit' ? 'Suggest' : 'Interact'}
+              title={
+                item === 'browse'
+                  ? 'Interact with the preview'
+                  : item === 'edit'
+                    ? 'Select text to suggest a replacement'
+                    : 'Select text to comment'
+              }
+              onClick={() => setMode(item)}
+              className={mode === item ? 'selected' : ''}
+            >
+              <Icon name={item === 'browse' ? 'mouse' : item} size={18} />
+              <span className="sidebar-label">
+                {item === 'comment' ? 'Comment' : item === 'edit' ? 'Suggest' : 'Interact'}
+              </span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-utilities">
           <Button
             variant="ghost"
-            size="sm"
             className="focus-toggle"
             aria-label={focused ? 'Show feedback' : 'Focus'}
             aria-pressed={focused}
@@ -360,301 +399,269 @@ function App() {
             onClick={() => setFocused(!focused)}
             title={focused ? 'Show feedback sidebar' : 'Hide the sidebar for focused reading'}
           >
-            <Icon name={focused ? 'panel' : 'focus'} size={16} />
-            <span>{focused ? 'Show feedback' : 'Focus'}</span>
+            <Icon name={focused ? 'panel' : 'focus'} size={18} />
+            <span className="sidebar-label">{focused ? 'Show feedback' : 'Focus'}</span>
           </Button>
           <Button
             variant="ghost"
-            size="icon"
             className="export"
             aria-label="Export feedback as JSON"
             title="Export feedback as JSON"
             onClick={download}
             disabled={complete}
           >
-            <Icon name="download" size={17} />
+            <Icon name="download" size={18} />
+            <span className="sidebar-label">Export feedback</span>
           </Button>
+        </div>
+        <div className="sidebar-bottom">
+          {plan && (
+            <div className="plan-status" role="status" title={planMessage}>
+              <Icon name={complete ? 'check' : 'file'} size={16} />
+              <span className="sidebar-label">{planMessage}</span>
+            </div>
+          )}
+          <div className="review-status" role="status" title={reviewStatus}>
+            <span className="status-dot" />
+            <span className="sidebar-label">{reviewStatus}</span>
+          </div>
           {plan && !complete && (
             <Button
               variant="outline"
               className="request-changes"
+              aria-label="Request changes"
+              title="Request changes"
               disabled={busy || review.stale || !!selection}
               onClick={() => send('changes_requested')}
             >
-              Request changes
+              <Icon name="edit" size={17} />
+              <span className="sidebar-label">Request changes</span>
             </Button>
           )}
           <Button
             className={`send ${sent ? 'sent' : ''}`}
+            aria-label={sendLabel}
+            title={sendLabel}
             disabled={busy || review.stale || !!selection || sent}
             onClick={() => send(plan ? 'approved' : undefined)}
           >
-            {plan
-              ? complete
-                ? review.decision === 'approved'
-                  ? 'Approved'
-                  : 'Changes requested'
-                : 'Approve plan'
-              : sent
-                ? 'Sent to agent'
-                : 'Send to agent'}
+            <Icon name={sent || plan ? 'check' : 'arrow'} size={17} />
+            <span className="sidebar-label">{sendLabel}</span>
             {!sent && open.length > 0 && <span className="button-count">{open.length}</span>}
-            <Icon name={sent ? 'check' : 'arrow'} size={16} />
           </Button>
         </div>
-      </header>
-      {plan && (
-        <div className="plan-status" role="status">
-          <Icon name={complete ? 'check' : 'file'} size={16} />
-          <span>
-            {complete
-              ? review.decision === 'approved'
-                ? 'Approval recorded. You can return to Claude.'
-                : 'Changes requested. Your inline feedback is returning to Claude for revision.'
-              : 'Claude is waiting for your review. Read, leave feedback, then approve or request changes.'}
-          </span>
-        </div>
-      )}
-      {error && (
-        <div className="banner error" role="alert">
-          {error}
-          <button aria-label="Dismiss error" onClick={() => setError('')}>
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-      )}
-      {review.stale && (
-        <div className="banner warning" role="alert">
-          The source file has changed. Your feedback is saved. Restart the presenter to review the
-          new version.
-        </div>
-      )}
-      {previewError && (
-        <div className="banner error" role="alert">
-          Preview error: {previewError}
-        </div>
-      )}
-      <main className={`workspace ${focused ? 'focused' : ''}`}>
-        <section className="document-panel" aria-label="Document preview">
-          <div className="document-toolbar">
-            <span className="document-label">
-              <Icon name="file" size={16} />
-              <span>{review.source.name}</span>
-            </span>
-            <div className="mode-switch" aria-label="Review mode">
-              {(['comment', 'edit', 'browse'] as const).map((item) => (
+      </aside>
+      <div className="review-content">
+        {error && (
+          <div className="banner error" role="alert">
+            {error}
+            <button aria-label="Dismiss error" onClick={() => setError('')}>
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        )}
+        {review.stale && (
+          <div className="banner warning" role="alert">
+            The source file has changed. Your feedback is saved. Restart the presenter to review the
+            new version.
+          </div>
+        )}
+        {previewError && (
+          <div className="banner error" role="alert">
+            Preview error: {previewError}
+          </div>
+        )}
+        <main className={`workspace ${focused ? 'focused' : ''}`}>
+          <section className="document-panel" aria-label="Document preview">
+            <div className="iframe-wrap">
+              <iframe
+                ref={iframe}
+                src={`/preview?token=${review.previewToken}`}
+                title="Review document"
+                sandbox="allow-scripts"
+              />
+            </div>
+            <div className="document-footer">
+              <span>
+                <Icon
+                  name={mode === 'edit' ? 'edit' : mode === 'browse' ? 'mouse' : 'mouse'}
+                  size={14}
+                />
+                {complete
+                  ? 'Review complete · you can close this tab'
+                  : mode === 'browse'
+                    ? 'Preview interactions enabled'
+                    : mode === 'edit'
+                      ? 'Select text to suggest a change'
+                      : 'Select any text to leave a comment'}
+              </span>
+              <span>Original file preserved</span>
+            </div>
+          </section>
+          <aside className="feedback-panel" aria-label="Feedback" hidden={focused}>
+            <div className="feedback-heading">
+              <h2>
+                Feedback <span>{review.entries.length}</span>
+              </h2>
+              <button
+                className="icon-button"
+                aria-label="Hide feedback sidebar"
+                onClick={() => setFocused(true)}
+              >
+                <Icon name="panel" size={17} />
+              </button>
+            </div>
+            <div className="feedback-tabs">
+              {(['open', 'resolved', 'all'] as const).map((item) => (
                 <button
                   key={item}
-                  disabled={complete}
-                  aria-pressed={mode === item}
-                  title={
-                    item === 'browse'
-                      ? 'Interact with the preview'
-                      : item === 'edit'
-                        ? 'Select text to suggest a replacement'
-                        : 'Select text to comment'
-                  }
-                  onClick={() => {
-                    setMode(item);
-                  }}
-                  className={mode === item ? 'selected' : ''}
+                  onClick={() => setFilter(item)}
+                  className={filter === item ? 'active' : ''}
                 >
-                  <Icon name={item === 'browse' ? 'mouse' : item} size={15} />
+                  {item === 'open' ? 'Open' : item === 'resolved' ? 'Resolved' : 'All'}
                   <span>
-                    {item === 'comment' ? 'Comment' : item === 'edit' ? 'Suggest' : 'Interact'}
+                    {item === 'all'
+                      ? review.entries.length
+                      : review.entries.filter((entry) => entry.status === item).length}
                   </span>
                 </button>
               ))}
             </div>
-          </div>
-          <div className="iframe-wrap">
-            <iframe
-              ref={iframe}
-              src={`/preview?token=${review.previewToken}`}
-              title="Review document"
-              sandbox="allow-scripts"
-            />
-          </div>
-          <div className="document-footer">
-            <span>
-              <Icon
-                name={mode === 'edit' ? 'edit' : mode === 'browse' ? 'mouse' : 'mouse'}
-                size={14}
-              />
-              {complete
-                ? 'Review complete · you can close this tab'
-                : mode === 'browse'
-                  ? 'Preview interactions enabled'
-                  : mode === 'edit'
-                    ? 'Select text to suggest a change'
-                    : 'Select any text to leave a comment'}
-            </span>
-            <span>Original file preserved</span>
-          </div>
-        </section>
-        <aside className="feedback-panel" aria-label="Feedback" hidden={focused}>
-          <div className="feedback-heading">
-            <h2>
-              Feedback <span>{review.entries.length}</span>
-            </h2>
-            <button
-              className="icon-button"
-              aria-label="Hide feedback sidebar"
-              onClick={() => setFocused(true)}
-            >
-              <Icon name="panel" size={17} />
-            </button>
-          </div>
-          <div className="feedback-tabs">
-            {(['open', 'resolved', 'all'] as const).map((item) => (
+            <div className="feedback-list">
+              {shown.length === 0 ? (
+                <div className="empty-state">
+                  <Icon name="comment" size={23} />
+                  <h3>
+                    {filter === 'resolved'
+                      ? 'Nothing resolved yet'
+                      : review.entries.length
+                        ? 'You’re all caught up'
+                        : 'Space for your thoughts'}
+                  </h3>
+                  <p>
+                    {filter === 'resolved'
+                      ? 'Resolved feedback will appear here.'
+                      : review.entries.length
+                        ? 'Switch to All to revisit your feedback.'
+                        : 'Select text as you read to leave a comment or suggest a change.'}
+                  </p>
+                </div>
+              ) : (
+                shown.map((entry) => (
+                  <article
+                    id={`entry-${entry.id}`}
+                    key={entry.id}
+                    className={`feedback-card ${active === entry.id ? 'focused' : ''} ${entry.status === 'resolved' ? 'resolved' : ''}`}
+                    onClick={() => focusEntry(entry.id)}
+                  >
+                    <div className="card-top">
+                      <div className={`avatar ${entry.kind}`}>
+                        <Icon name={entry.kind} size={15} />
+                      </div>
+                      <strong>{entry.kind === 'edit' ? 'Suggested edit' : 'Comment'}</strong>
+                      <span className="entry-number">
+                        {String(review.entries.indexOf(entry) + 1).padStart(2, '0')}
+                      </span>
+                    </div>
+                    <blockquote>{entry.anchor.exact}</blockquote>
+                    {entry.kind === 'edit' && (
+                      <div className="replacement">
+                        {entry.replacement || <em>Delete selected text</em>}
+                      </div>
+                    )}
+                    {entry.body && <p className="comment-body">{entry.body}</p>}
+                    {orphaned.includes(entry.id) && entry.status === 'open' && (
+                      <p className="orphaned">
+                        Text moved in this preview. The original anchor is preserved.
+                      </p>
+                    )}
+                    <div className="card-bottom">
+                      <span>
+                        {entry.anchor.sourceLine
+                          ? `Line ${entry.anchor.sourceLine}${entry.anchor.sourceEndLine && entry.anchor.sourceEndLine !== entry.anchor.sourceLine ? `–${entry.anchor.sourceEndLine}` : ''}`
+                          : entry.anchor.heading || 'Selected text'}
+                      </span>
+                      <div>
+                        <button
+                          title={entry.status === 'open' ? 'Resolve feedback' : 'Reopen feedback'}
+                          aria-label={`${entry.status === 'open' ? 'Resolve' : 'Reopen'} feedback ${review.entries.indexOf(entry) + 1}`}
+                          disabled={busy || review.stale || complete}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            updateEntry(entry, entry.status === 'open' ? 'resolve' : 'reopen');
+                          }}
+                        >
+                          <Icon name={entry.status === 'open' ? 'check' : 'undo'} size={15} />
+                        </button>
+                        <button
+                          title="Delete feedback"
+                          aria-label={`Delete feedback ${review.entries.indexOf(entry) + 1}`}
+                          disabled={busy || review.stale || complete}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            updateEntry(entry, 'delete');
+                          }}
+                        >
+                          <Icon name="trash" size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="general-notes">
               <button
-                key={item}
-                onClick={() => setFilter(item)}
-                className={filter === item ? 'active' : ''}
+                className="notes-toggle"
+                aria-expanded={notesOpen}
+                onClick={() => setNotesOpen(!notesOpen)}
               >
-                {item === 'open' ? 'Open' : item === 'resolved' ? 'Resolved' : 'All'}
-                <span>
-                  {item === 'all'
-                    ? review.entries.length
-                    : review.entries.filter((entry) => entry.status === item).length}
-                </span>
+                <Icon name="edit" size={15} /> A final thought <span>{notesOpen ? '−' : '+'}</span>
               </button>
-            ))}
-          </div>
-          <div className="feedback-list">
-            {shown.length === 0 ? (
-              <div className="empty-state">
-                <Icon name="comment" size={23} />
-                <h3>
-                  {filter === 'resolved'
-                    ? 'Nothing resolved yet'
-                    : review.entries.length
-                      ? 'You’re all caught up'
-                      : 'Space for your thoughts'}
-                </h3>
-                <p>
-                  {filter === 'resolved'
-                    ? 'Resolved feedback will appear here.'
-                    : review.entries.length
-                      ? 'Switch to All to revisit your feedback.'
-                      : 'Select text as you read to leave a comment or suggest a change.'}
-                </p>
-              </div>
-            ) : (
-              shown.map((entry) => (
-                <article
-                  id={`entry-${entry.id}`}
-                  key={entry.id}
-                  className={`feedback-card ${active === entry.id ? 'focused' : ''} ${entry.status === 'resolved' ? 'resolved' : ''}`}
-                  onClick={() => focusEntry(entry.id)}
-                >
-                  <div className="card-top">
-                    <div className={`avatar ${entry.kind}`}>
-                      <Icon name={entry.kind} size={15} />
-                    </div>
-                    <strong>{entry.kind === 'edit' ? 'Suggested edit' : 'Comment'}</strong>
-                    <span className="entry-number">
-                      {String(review.entries.indexOf(entry) + 1).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <blockquote>{entry.anchor.exact}</blockquote>
-                  {entry.kind === 'edit' && (
-                    <div className="replacement">
-                      {entry.replacement || <em>Delete selected text</em>}
-                    </div>
-                  )}
-                  {entry.body && <p className="comment-body">{entry.body}</p>}
-                  {orphaned.includes(entry.id) && entry.status === 'open' && (
-                    <p className="orphaned">
-                      Text moved in this preview. The original anchor is preserved.
-                    </p>
-                  )}
-                  <div className="card-bottom">
-                    <span>
-                      {entry.anchor.sourceLine
-                        ? `Line ${entry.anchor.sourceLine}${entry.anchor.sourceEndLine && entry.anchor.sourceEndLine !== entry.anchor.sourceLine ? `–${entry.anchor.sourceEndLine}` : ''}`
-                        : entry.anchor.heading || 'Selected text'}
-                    </span>
-                    <div>
-                      <button
-                        title={entry.status === 'open' ? 'Resolve feedback' : 'Reopen feedback'}
-                        aria-label={`${entry.status === 'open' ? 'Resolve' : 'Reopen'} feedback ${review.entries.indexOf(entry) + 1}`}
-                        disabled={busy || review.stale || complete}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          updateEntry(entry, entry.status === 'open' ? 'resolve' : 'reopen');
-                        }}
-                      >
-                        <Icon name={entry.status === 'open' ? 'check' : 'undo'} size={15} />
-                      </button>
-                      <button
-                        title="Delete feedback"
-                        aria-label={`Delete feedback ${review.entries.indexOf(entry) + 1}`}
-                        disabled={busy || review.stale || complete}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          updateEntry(entry, 'delete');
-                        }}
-                      >
-                        <Icon name="trash" size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-          <div className="general-notes">
-            <button
-              className="notes-toggle"
-              aria-expanded={notesOpen}
-              onClick={() => setNotesOpen(!notesOpen)}
-            >
-              <Icon name="edit" size={15} /> A final thought <span>{notesOpen ? '−' : '+'}</span>
-            </button>
-            {notesOpen && (
-              <div className="notes-editor">
-                <Textarea
-                  aria-label="Overall feedback"
-                  placeholder="Anything else your agent should know?"
-                  value={notes}
-                  disabled={busy || review.stale || complete}
-                  onChange={(e) => {
-                    setNotes(e.target.value);
-                    notesDirty.current = true;
-                  }}
-                />
-                <button
-                  disabled={busy || review.stale || complete || !notesDirty.current}
-                  onClick={() =>
-                    act(async () => {
-                      await mutate('/api/notes', { notes });
-                      notesDirty.current = false;
-                    })
-                  }
-                >
-                  Save note
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="feedback-summary">
-            <span>
-              {commentCount} comment{commentCount !== 1 ? 's' : ''}
-            </span>
-            <i />
-            <span>
-              {editCount} suggested edit{editCount !== 1 ? 's' : ''}
-            </span>
-          </div>
-        </aside>
-      </main>
+              {notesOpen && (
+                <div className="notes-editor">
+                  <Textarea
+                    aria-label="Overall feedback"
+                    placeholder="Anything else your agent should know?"
+                    value={notes}
+                    disabled={busy || review.stale || complete}
+                    onChange={(e) => {
+                      setNotes(e.target.value);
+                      notesDirty.current = true;
+                    }}
+                  />
+                  <button
+                    disabled={busy || review.stale || complete || !notesDirty.current}
+                    onClick={() =>
+                      act(async () => {
+                        await mutate('/api/notes', { notes });
+                        notesDirty.current = false;
+                      })
+                    }
+                  >
+                    Save note
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="feedback-summary">
+              <span>
+                {commentCount} comment{commentCount !== 1 ? 's' : ''}
+              </span>
+              <i />
+              <span>
+                {editCount} suggested edit{editCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </aside>
+        </main>
+      </div>
       {selection && (
         <div
           className="composer"
           role="dialog"
           aria-label="Add inline feedback"
-          style={{ left: Math.max(8, selection.x), top: Math.max(90, selection.y) }}
+          style={{ left: Math.max(8, selection.x), top: Math.max(16, selection.y) }}
         >
           <div className="composer-top">
             <div className="composer-tabs">
