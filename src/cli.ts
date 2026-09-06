@@ -5,6 +5,7 @@ import { startServer } from './server';
 import { reviewSchema } from './model';
 import { markdown, waitForReview } from './feedback';
 import { openBrowser } from './browser';
+import { installOptions } from './install-options';
 export { waitForReview } from './feedback';
 
 const help = `
@@ -15,8 +16,10 @@ const help = `
   conduct feedback <file> [--out <path>] [--format json|markdown]
   conduct wait <file> [--after <round>] [--timeout <seconds>]
   conduct skill
-  conduct install claude --scope user|project
-  conduct uninstall claude --scope user|project
+  conduct install skill [claude|codex|agents|all] [--global|--project]
+  conduct install hook [--global|--project]
+  conduct uninstall skill [claude|codex|agents|all] [--global|--project]
+  conduct uninstall hook [--global|--project]
 
   Formats      .md, .markdown, .html, .htm, .tsx, .jsx
   --port       Port to listen on (default: available port)
@@ -25,6 +28,9 @@ const help = `
   --after      Wait for a submitted round after this number (default: 0)
   --timeout    Stop waiting after this many seconds (default: 0, unlimited)
   --format     Output format for feedback or wait (default: json)
+  --global, -g Install for all projects (default)
+  --project, -p Install only in the current project directory
+  --force      Replace an existing or edited skill (skill commands only)
   --help       Show this help
   --version    Show version
 
@@ -33,6 +39,15 @@ const help = `
     conduct concept.tsx --no-open
     conduct wait proposal.md --after 0 --timeout 600
     conduct feedback proposal.md --format markdown
+    conduct install skill all
+    conduct install skill codex --project
+    conduct install hook
+    conduct install hook --project
+
+  Skill target defaults to all: Claude Code + the shared .agents folder.
+  Codex and agents use the same .agents/skills location.
+  Hook installation handles Claude Code's plan approval.
+  Legacy install/uninstall claude --scope user|project commands still work.
 
   Select text → comment or suggest an edit → Send to agent.
   Feedback is saved locally. Original files are never modified.
@@ -50,6 +65,9 @@ async function main() {
       timeout: { type: 'string' },
       format: { type: 'string' },
       scope: { type: 'string' },
+      global: { type: 'boolean', short: 'g' },
+      project: { type: 'boolean', short: 'p' },
+      force: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -72,14 +90,24 @@ async function main() {
     return;
   }
   if (first === 'install' || first === 'uninstall') {
-    if (positionals[1] !== 'claude' || positionals.length !== 2)
-      throw new Error(`Usage: conduct ${first} claude --scope user|project`);
-    if (values.scope !== undefined && values.scope !== 'user' && values.scope !== 'project')
-      throw new Error('--scope must be user or project.');
+    const options = installOptions(positionals, values);
+    const uninstall = first === 'uninstall';
+    if (options.kind === 'skill') {
+      const { configureSkill } = await import('./skill-install');
+      const paths = await configureSkill({ ...options, uninstall });
+      console.log(
+        `Conduct skill ${uninstall ? 'removed from' : 'installed at'}:\n${paths.map((path) => `  ${path}`).join('\n')}`,
+      );
+      if (!uninstall)
+        console.log(
+          'Available to your agent on its next turn. Restart the agent if it does not appear.',
+        );
+      return;
+    }
     const { configureClaude } = await import('./claude-install');
     const path = await configureClaude({
-      scope: values.scope ?? 'project',
-      uninstall: first === 'uninstall',
+      scope: options.scope,
+      uninstall,
     });
     console.log(
       `Conduct plan review ${first === 'install' ? 'enabled' : 'disabled'} in ${path}.\nRestart Claude Code to load the updated hooks.`,

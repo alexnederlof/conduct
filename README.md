@@ -65,20 +65,37 @@ A timeout exits nonzero. An unsent draft never wakes a waiting agent. An empty s
 
 ### Install the agent skill
 
-Copy [skills/conduct](skills/conduct) into your agent’s skill directory. For a project that uses `.agents/skills`:
+Use the CLI to install the bundled skill. Global installation is the default; add `--project` to install only in the current directory. From this checkout, replace `conduct` with `bun /absolute/path/to/conduct/src/cli.ts`.
 
 ```sh
-mkdir -p .agents/skills
-cp -R /path/to/conduct/skills/conduct .agents/skills/
+conduct install skill          # All supported agents, globally
+conduct install skill claude   # Claude Code only
+conduct install skill codex    # Codex via the shared .agents folder
+conduct install skill agents   # Other agents that read .agents/skills
+conduct install skill all --project
 ```
 
-For Codex, a personal installation can use `~/.codex/skills/conduct/SKILL.md`. The CLI can print the skill without knowing the package’s install location:
+| Target              | Global location (default)           | Project location                  |
+| ------------------- | ----------------------------------- | --------------------------------- |
+| `claude`            | `~/.claude/skills/conduct/SKILL.md` | `.claude/skills/conduct/SKILL.md` |
+| `codex` or `agents` | `~/.agents/skills/conduct/SKILL.md` | `.agents/skills/conduct/SKILL.md` |
+| `all` (default)     | Both locations above                | Both locations above              |
+
+Codex and `agents` are aliases for the same shared installation, so `all` installs two skills without duplicating Codex entries. The paths follow [Codex’s local skill discovery](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills) and [Claude Code’s skill locations](https://code.claude.com/docs/en/skills#where-skills-live). `CLAUDE_CONFIG_DIR` overrides Claude’s global directory. Run project installation from the project root. `--global` (`-g`) and `--project` (`-p`) work for both install and uninstall; conflicting scope flags are rejected.
+
+Installed instructions include an absolute command pointing to a persistent runtime with production dependencies and the bundled examples. They work without a global `conduct` binary and after clearing BunX’s cache or moving the source checkout. The runtime is under the selected agent directory’s `conduct/runtime/` (`.agents` for an `all` installation). Rerun the installer when upgrading, moving Bun, or setting up the project on another machine. Generated instructions refer to this machine’s runtime; the original skill in the package remains portable. Agents discover the skill on their next turn; restart if it does not appear.
+
+Reinstallation updates a Conduct-managed skill. If a different skill already exists or you edited the installed instructions, the installer preserves it and asks you to use `--force` to replace it. Linked skill folders are never overwritten. Other files in the skill directory are preserved.
 
 ```sh
-conduct skill
+conduct install skill all --force
+conduct uninstall skill claude
+conduct uninstall skill all --project
 ```
 
-The skill explains format selection, background presentation, waiting for submission, round cursors, exact anchors, and safe source editing.
+Uninstall removes the installed instructions and their ownership marker, preserving other files and cached runtimes that hooks or other skill installations may still use. Edited instructions also require `--force` for removal. This skill installation is independent of the plan approval hook below.
+
+The CLI still prints the portable skill with `conduct skill`. The skill explains format selection, background presentation, waiting for submission, round cursors, exact anchors, and source editing.
 
 ## Formats
 
@@ -200,11 +217,13 @@ Conduct can replace Claude Code’s normal plan approval prompt. Install once on
 
 ```sh
 # From this checkout; use your absolute checkout path from another directory
-bun src/cli.ts install claude --scope user
+bun src/cli.ts install hook           # Global by default; --global is also accepted
 
 # Or enable it only for the current project
-bun src/cli.ts install claude --scope project
+bun src/cli.ts install hook --project
 ```
+
+The hook command installs Claude Code’s plan approval integration. `conduct install hook claude` is also accepted. The older `conduct install claude --scope user|project` and matching uninstall commands remain aliases; their default scope is now global too. Skill installation does not enable a hook.
 
 Restart Claude Code after installation, then enter plan mode as usual. When Claude calls `ExitPlanMode`, the browser opens automatically and Claude waits for your decision:
 
@@ -213,15 +232,15 @@ Restart Claude Code after installation, then enter plan mode as usual. When Clau
 
 Saving a comment, closing the browser, or leaving a review idle never approves it. A review expires after 59 minutes; timeout, cancellation, missing content, and changed plan files produce a denial. Every invocation has its own snapshot and feedback file, so previous approvals cannot approve a new plan. Suggestions never rewrite the source automatically. Once a decision is recorded, the review becomes read-only and its server closes; the loaded page can be read until you close it.
 
-The installer merges a synchronous `PreToolUse` hook matching only `ExitPlanMode` into `~/.claude/settings.json` (user scope), or `.claude/settings.local.json` (project scope). It preserves other settings and hooks and is safe to rerun. `CLAUDE_CONFIG_DIR` is respected for user configuration and review storage. A private, persistent runtime with production dependencies is copied under the selected settings directory’s `conduct/runtime/`, so Bun’s cache and the original checkout are no longer needed. Bun itself must remain installed at its configured path. Rerun the installer after upgrading Conduct or moving Bun. The same installer works from a BunX package once published.
+With `--project`, run the command from the project root. The installer merges a synchronous `PreToolUse` hook matching only `ExitPlanMode` into `~/.claude/settings.json` (user scope), or `.claude/settings.local.json` (project scope). It preserves other settings and hooks and is safe to rerun. `CLAUDE_CONFIG_DIR` is respected for user configuration and review storage. A private, persistent runtime with production dependencies is copied under the selected settings directory’s `conduct/runtime/`, so Bun’s cache and the original checkout are no longer needed. Bun itself must remain installed at its configured path. Rerun the installer after upgrading Conduct or moving Bun. The same installer works from a BunX package once published.
 
 Review artifacts live under `~/.claude/conduct/reviews/<unique-id>/`: `plan.md`, `invocation.json`, `session.json` (the private browser URL and expiry), `feedback.json`, and the returned `result.json` after a completed handoff. These are local files containing your plan and comments. Sessions are independent across terminals and projects. Old reviews and runtime versions are retained; remove them manually when no review is running if you no longer need them.
 
 To disable the integration without removing your review history:
 
 ```sh
-bun src/cli.ts uninstall claude --scope user
-# Or: bun src/cli.ts uninstall claude --scope project
+bun src/cli.ts uninstall hook
+# Or: bun src/cli.ts uninstall hook --project
 ```
 
 This integration uses Claude Code’s documented [PreToolUse decision protocol](https://code.claude.com/docs/en/hooks#pretooluse-decision-control). Approval returns both `permissionDecision: "allow"` and the original `updatedInput`; the latter is required to satisfy `ExitPlanMode`’s interaction requirement. Change requests return `"deny"` with the inline feedback. Hook stdout contains only the JSON decision; launch details go to stderr. Implementation permissions are unchanged, and approval does not clear the conversation.
@@ -313,7 +332,7 @@ bun run dev
 bun run check
 ```
 
-`bun run check` runs strict TypeScript checking and Bun tests for anchors, source snapshots, persistence, submission, wait cursors, concurrent saves, renderer compilation, and API boundaries. Test fixtures are retained under ignored `.temp/` for inspection. Restart the server and reload the browser after code changes.
+`bun run check` runs strict TypeScript checking and Bun tests for anchors, source snapshots, persistence, submission, wait cursors, concurrent saves, renderer compilation, API boundaries, skill installation and removal, and global/project hook settings. Test fixtures are retained under ignored `.temp/` for inspection. Restart the server and reload the browser after code changes.
 
 The core lives in `src/server.ts`, `src/render.ts`, and `src/store.ts`; the review shell and selection bridge are in `src/client/`. The UI is React, the server and bundler are Bun, and Tailwind generates preview styles locally. The annotation implementation is original code and does not depend on Agentation.
 

@@ -18,7 +18,7 @@ Use the Conduct CLI to give the user an editable review space and receive struct
 
 ## Claude Code plan mode
 
-When the user wants Conduct to handle Claude Code’s native plan approval, install its hook with `conduct install claude --scope user` for all projects or `--scope project` for the current project. Use the scope authorized by the user. Restart Claude Code after installation. Uninstall with the matching `conduct uninstall claude --scope …` command.
+When the user wants Conduct to handle Claude Code’s native plan approval, install its hook with `conduct install hook` for all projects (the default) or `conduct install hook --project` for the current project. `--global` explicitly selects all projects. Use the scope authorized by the user. Restart Claude Code after installation. Uninstall with the matching `conduct uninstall hook [--global|--project]` command.
 
 Once installed, write the plan in Claude’s normal plan file and call `ExitPlanMode` as usual. The hook opens Conduct and waits for the human. Do not launch a second presenter or run a separate polling command. **Approve plan** allows the tool with the reviewed input; **Request changes** denies it and returns inline feedback. Address the open comments and suggested edits, update the plan, and call `ExitPlanMode` again. Do not implement after a change request, timeout, cancellation, or stale review. Do not auto-submit decisions on the human’s behalf.
 
