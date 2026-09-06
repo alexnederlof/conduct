@@ -2,7 +2,10 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { startServer } from './server';
-import { reviewSchema, type Round } from './model';
+import { reviewSchema } from './model';
+import { markdown, waitForReview } from './feedback';
+import { openBrowser } from './browser';
+export { waitForReview } from './feedback';
 
 const help = `
   Conduct — a local review space for agent-generated work
@@ -12,6 +15,8 @@ const help = `
   conduct feedback <file> [--out <path>] [--format json|markdown]
   conduct wait <file> [--after <round>] [--timeout <seconds>]
   conduct skill
+  conduct install claude --scope user|project
+  conduct uninstall claude --scope user|project
 
   Formats      .md, .markdown, .html, .htm, .tsx, .jsx
   --port       Port to listen on (default: available port)
@@ -33,46 +38,6 @@ const help = `
   Feedback is saved locally. Original files are never modified.
 `;
 
-function markdown(rounds: Round[]) {
-  return rounds
-    .map(
-      (round) =>
-        `# Review round ${round.number}\n\nSource: ${round.source.path}\nSHA-256: ${round.source.hash}\nSubmitted: ${round.submittedAt}\n\n${round.entries
-          .map(
-            (entry, index) =>
-              `## ${index + 1}. ${entry.kind === 'edit' ? 'Suggested edit' : 'Comment'} [${entry.status}]\n\nID: ${entry.id}\n${entry.anchor.sourceLine ? `Source lines: ${entry.anchor.sourceLine}–${entry.anchor.sourceEndLine ?? entry.anchor.sourceLine}\n` : ''}Heading: ${entry.anchor.heading ?? '(none)'}\nSelector: ${entry.anchor.selector}\nText offsets: ${entry.anchor.start}–${entry.anchor.end}\n\nSelected text:\n${entry.anchor.exact
-                .split('\n')
-                .map((line) => '> ' + line)
-                .join('\n')}\n\n${
-                entry.kind === 'edit'
-                  ? `Replacement (empty means deletion):\n${(entry.replacement ?? '')
-                      .split('\n')
-                      .map((line) => '> ' + line)
-                      .join('\n')}\n\n`
-                  : ''
-              }${entry.body}\n`,
-          )
-          .join('\n')}${round.notes ? `## Overall feedback\n\n${round.notes}\n` : ''}`,
-    )
-    .join('\n---\n\n');
-}
-
-export async function waitForReview(path: string, after = 0, timeout = 0, signal?: AbortSignal) {
-  const started = Date.now();
-  while (!signal?.aborted) {
-    const file = Bun.file(path);
-    if (await file.exists()) {
-      const state = reviewSchema.parse(await file.json());
-      const rounds = state.rounds.filter((round) => round.number > after);
-      if (rounds.length) return { schemaVersion: 1, reviewId: state.id, rounds };
-    }
-    if (timeout && Date.now() - started >= timeout * 1000)
-      throw new Error('Timed out waiting for a submitted review. Draft feedback is still saved.');
-    await Bun.sleep(300);
-  }
-  throw new Error('Waiting cancelled.');
-}
-
 async function main() {
   const { values, positionals } = parseArgs({
     args: Bun.argv.slice(2),
@@ -84,6 +49,7 @@ async function main() {
       after: { type: 'string' },
       timeout: { type: 'string' },
       format: { type: 'string' },
+      scope: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -97,6 +63,29 @@ async function main() {
     return;
   }
   const first = positionals[0];
+  if (first === 'claude-hook') {
+    const { runClaudeHook } = await import('./claude-hook');
+    await runClaudeHook({
+      noOpen: values['no-open'],
+      timeout: values.timeout === undefined ? undefined : Number(values.timeout),
+    });
+    return;
+  }
+  if (first === 'install' || first === 'uninstall') {
+    if (positionals[1] !== 'claude' || positionals.length !== 2)
+      throw new Error(`Usage: conduct ${first} claude --scope user|project`);
+    if (values.scope !== undefined && values.scope !== 'user' && values.scope !== 'project')
+      throw new Error('--scope must be user or project.');
+    const { configureClaude } = await import('./claude-install');
+    const path = await configureClaude({
+      scope: values.scope ?? 'project',
+      uninstall: first === 'uninstall',
+    });
+    console.log(
+      `Conduct plan review ${first === 'install' ? 'enabled' : 'disabled'} in ${path}.\nRestart Claude Code to load the updated hooks.`,
+    );
+    return;
+  }
   const command = ['present', 'feedback', 'wait', 'skill'].includes(first) ? first : 'present';
   if (command === 'skill') {
     console.log(await Bun.file(resolve(import.meta.dir, '../skills/conduct/SKILL.md')).text());
@@ -151,23 +140,11 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   if (!values['no-open']) {
-    const args =
-      process.platform === 'darwin'
-        ? ['open', app.url]
-        : process.platform === 'win32'
-          ? ['rundll32.exe', 'url.dll,FileProtocolHandler', app.url]
-          : ['xdg-open', app.url];
-    try {
-      const child = Bun.spawn(args, { stdout: 'ignore', stderr: 'ignore' });
-      if ((await child.exited) !== 0)
-        console.error('  Browser could not open automatically. Open the review URL above.');
-    } catch {
-      console.error('  Browser could not open automatically. Open the review URL above.');
-    }
+    await openBrowser(app.url);
   }
 }
 if (import.meta.main)
   main().catch((error) => {
     console.error(`Conduct: ${error instanceof Error ? error.message : error}`);
-    process.exitCode = 1;
+    process.exitCode = Bun.argv[2] === 'claude-hook' ? 2 : 1;
   });

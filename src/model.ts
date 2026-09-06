@@ -47,16 +47,19 @@ export const sourceSchema = z.object({
   hash: z.string(),
   content: z.string(),
 });
+export const decisionSchema = z.enum(['approved', 'changes_requested']);
 export const roundSchema = z.object({
   number: z.number().int(),
   submittedAt: z.string(),
   source: sourceSchema,
   entries: z.array(entrySchema),
   notes: z.string(),
+  decision: decisionSchema.optional(),
 });
 export const reviewSchema = z.object({
   schemaVersion: z.literal(1),
   id: z.string(),
+  mode: z.enum(['feedback', 'plan']).default('feedback'),
   revision: z.number().int(),
   source: sourceSchema,
   entries: z.array(entrySchema),
@@ -80,12 +83,14 @@ export type Entry = z.infer<typeof entrySchema>;
 export type Source = z.infer<typeof sourceSchema>;
 export type Review = z.infer<typeof reviewSchema>;
 export type Round = z.infer<typeof roundSchema>;
+export type Decision = z.infer<typeof decisionSchema>;
 export type PublicReview = Omit<Review, 'source' | 'rounds' | 'archivedDrafts'> & {
   source: Omit<Source, 'content'>;
   roundCount: number;
   stale: boolean;
   outputPath: string;
   previewToken: string;
+  decision?: Decision;
 };
 export type FrameMessage =
   | { type: 'selection'; anchor: Anchor; rect: { x: number; y: number; bottom: number } }

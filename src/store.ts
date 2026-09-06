@@ -1,6 +1,13 @@
 import { mkdir, rename, unlink, open } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { entryInputSchema, reviewSchema, type EntryInput, type Review, type Source } from './model';
+import {
+  entryInputSchema,
+  reviewSchema,
+  type Decision,
+  type EntryInput,
+  type Review,
+  type Source,
+} from './model';
 
 export class ConflictError extends Error {}
 export class ReviewStore {
@@ -10,12 +17,13 @@ export class ReviewStore {
     private state: Review,
   ) {}
 
-  static async open(path: string, source: Source) {
+  static async open(path: string, source: Source, mode: Review['mode'] = 'feedback') {
     const file = Bun.file(path);
     const now = new Date().toISOString();
     let state: Review;
     if (await file.exists()) {
       state = reviewSchema.parse(await file.json());
+      if (state.mode !== mode) throw new Error('This feedback file uses a different review mode.');
       if (state.source.path !== source.path)
         throw new Error(
           'This feedback file belongs to another document. Choose a different --out path.',
@@ -43,6 +51,7 @@ export class ReviewStore {
       state = {
         schemaVersion: 1,
         id: crypto.randomUUID(),
+        mode,
         revision: 0,
         source,
         entries: [],
@@ -78,6 +87,10 @@ export class ReviewStore {
 
   update(revision: number, change: (draft: Review) => void) {
     const operation = this.queue.then(async () => {
+      if (this.state.mode === 'plan' && this.state.status === 'submitted')
+        throw new ConflictError(
+          'This plan review is complete. Review the next version in a new session.',
+        );
       if (revision !== this.state.revision)
         throw new ConflictError(
           'This review changed in another tab. Your draft is kept; please try again.',
@@ -126,8 +139,12 @@ export class ReviewStore {
     });
   }
 
-  submit(revision: number) {
+  submit(revision: number, decision?: Decision) {
     return this.update(revision, (state) => {
+      if (state.mode === 'plan' && !decision)
+        throw new Error('Choose Approve plan or Request changes.');
+      if (state.mode !== 'plan' && decision)
+        throw new Error('Plan decisions require a plan review.');
       if (state.status === 'submitted')
         throw new ConflictError('This review has already been sent.');
       state.rounds.push({
@@ -136,6 +153,7 @@ export class ReviewStore {
         source: structuredClone(state.source),
         entries: structuredClone(state.entries),
         notes: state.notes,
+        ...(decision ? { decision } : {}),
       });
       state.status = 'submitted';
     });

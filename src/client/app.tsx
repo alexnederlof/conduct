@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, Textarea } from '../ui';
-import type { Anchor, Entry, FrameMessage, PublicReview } from '../model';
+import type { Anchor, Decision, Entry, FrameMessage, PublicReview } from '../model';
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
@@ -149,6 +149,7 @@ function App() {
   useEffect(() => {
     refresh().catch((e) => setError(e.message));
     const timer = setInterval(() => {
+      if (reviewRef.current?.mode === 'plan' && reviewRef.current.status === 'submitted') return;
       if (!busyRef.current) refresh().catch((e) => setError(e.message));
     }, 2500);
     return () => clearInterval(timer);
@@ -162,7 +163,13 @@ function App() {
     [],
   );
   useEffect(() => {
-    if (ready && review) postFrame({ type: 'sync', entries: review.entries, active, mode });
+    if (ready && review)
+      postFrame({
+        type: 'sync',
+        entries: review.entries,
+        active,
+        mode: review.mode === 'plan' && review.status === 'submitted' ? 'browse' : mode,
+      });
   }, [review, active, mode, ready, postFrame]);
   const focusEntry = useCallback(
     (id: string) => {
@@ -190,7 +197,12 @@ function App() {
       if (message.type === 'preview-error') setPreviewError(message.message);
       if (message.type === 'focus') focusEntry(message.id);
       if (message.type === 'locations') setOrphaned(message.orphaned);
-      if (message.type === 'selection' && !selectionRef.current && !reviewRef.current?.stale) {
+      if (
+        message.type === 'selection' &&
+        !selectionRef.current &&
+        !reviewRef.current?.stale &&
+        !(reviewRef.current.mode === 'plan' && reviewRef.current.status === 'submitted')
+      ) {
         const rect = iframe.current!.getBoundingClientRect();
         setSelection({
           anchor: message.anchor,
@@ -258,13 +270,13 @@ function App() {
       setSelection(null);
       postFrame({ type: 'clear-selection' });
     });
-  const send = () =>
+  const send = (decision?: Decision) =>
     act(async () => {
       if (notesDirty.current) {
         await mutate('/api/notes', { notes });
         notesDirty.current = false;
       }
-      await mutate('/api/submit', {});
+      await mutate('/api/submit', { decision });
     });
   const updateEntry = (entry: Entry, action: string) =>
     act(async () => {
@@ -305,9 +317,11 @@ function App() {
   const commentCount = open.filter((entry) => entry.kind === 'comment').length;
   const editCount = open.length - commentCount;
   const sent = review.status === 'submitted' && !notesDirty.current;
+  const plan = review.mode === 'plan';
+  const complete = plan && review.status === 'submitted';
   const title = review.source.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   return (
-    <div className={`app ${focused ? 'is-focused' : ''}`}>
+    <div className={`app ${plan ? 'plan-review' : ''} ${focused ? 'is-focused' : ''}`}>
       <header className="app-header">
         <div className="header-document">
           <a
@@ -329,7 +343,9 @@ function App() {
               : busy
                 ? 'Saving…'
                 : sent
-                  ? `Round ${review.roundCount} sent`
+                  ? complete
+                    ? 'Review complete'
+                    : `Round ${review.roundCount} sent`
                   : notesDirty.current || selection
                     ? 'Draft in progress'
                     : 'Saved locally'}
@@ -354,20 +370,51 @@ function App() {
             aria-label="Export feedback as JSON"
             title="Export feedback as JSON"
             onClick={download}
+            disabled={complete}
           >
             <Icon name="download" size={17} />
           </Button>
+          {plan && !complete && (
+            <Button
+              variant="outline"
+              className="request-changes"
+              disabled={busy || review.stale || !!selection}
+              onClick={() => send('changes_requested')}
+            >
+              Request changes
+            </Button>
+          )}
           <Button
             className={`send ${sent ? 'sent' : ''}`}
             disabled={busy || review.stale || !!selection || sent}
-            onClick={send}
+            onClick={() => send(plan ? 'approved' : undefined)}
           >
-            {sent ? 'Sent to agent' : 'Send to agent'}
+            {plan
+              ? complete
+                ? review.decision === 'approved'
+                  ? 'Approved'
+                  : 'Changes requested'
+                : 'Approve plan'
+              : sent
+                ? 'Sent to agent'
+                : 'Send to agent'}
             {!sent && open.length > 0 && <span className="button-count">{open.length}</span>}
             <Icon name={sent ? 'check' : 'arrow'} size={16} />
           </Button>
         </div>
       </header>
+      {plan && (
+        <div className="plan-status" role="status">
+          <Icon name={complete ? 'check' : 'file'} size={16} />
+          <span>
+            {complete
+              ? review.decision === 'approved'
+                ? 'Approval recorded. You can return to Claude.'
+                : 'Changes requested. Your inline feedback is returning to Claude for revision.'
+              : 'Claude is waiting for your review. Read, leave feedback, then approve or request changes.'}
+          </span>
+        </div>
+      )}
       {error && (
         <div className="banner error" role="alert">
           {error}
@@ -398,6 +445,7 @@ function App() {
               {(['comment', 'edit', 'browse'] as const).map((item) => (
                 <button
                   key={item}
+                  disabled={complete}
                   aria-pressed={mode === item}
                   title={
                     item === 'browse'
@@ -433,11 +481,13 @@ function App() {
                 name={mode === 'edit' ? 'edit' : mode === 'browse' ? 'mouse' : 'mouse'}
                 size={14}
               />
-              {mode === 'browse'
-                ? 'Preview interactions enabled'
-                : mode === 'edit'
-                  ? 'Select text to suggest a change'
-                  : 'Select any text to leave a comment'}
+              {complete
+                ? 'Review complete · you can close this tab'
+                : mode === 'browse'
+                  ? 'Preview interactions enabled'
+                  : mode === 'edit'
+                    ? 'Select text to suggest a change'
+                    : 'Select any text to leave a comment'}
             </span>
             <span>Original file preserved</span>
           </div>
@@ -529,7 +579,7 @@ function App() {
                       <button
                         title={entry.status === 'open' ? 'Resolve feedback' : 'Reopen feedback'}
                         aria-label={`${entry.status === 'open' ? 'Resolve' : 'Reopen'} feedback ${review.entries.indexOf(entry) + 1}`}
-                        disabled={busy || review.stale}
+                        disabled={busy || review.stale || complete}
                         onClick={(event) => {
                           event.stopPropagation();
                           updateEntry(entry, entry.status === 'open' ? 'resolve' : 'reopen');
@@ -540,7 +590,7 @@ function App() {
                       <button
                         title="Delete feedback"
                         aria-label={`Delete feedback ${review.entries.indexOf(entry) + 1}`}
-                        disabled={busy || review.stale}
+                        disabled={busy || review.stale || complete}
                         onClick={(event) => {
                           event.stopPropagation();
                           updateEntry(entry, 'delete');
@@ -568,14 +618,14 @@ function App() {
                   aria-label="Overall feedback"
                   placeholder="Anything else your agent should know?"
                   value={notes}
-                  disabled={busy || review.stale}
+                  disabled={busy || review.stale || complete}
                   onChange={(e) => {
                     setNotes(e.target.value);
                     notesDirty.current = true;
                   }}
                 />
                 <button
-                  disabled={busy || review.stale || !notesDirty.current}
+                  disabled={busy || review.stale || complete || !notesDirty.current}
                   onClick={() =>
                     act(async () => {
                       await mutate('/api/notes', { notes });

@@ -16,6 +16,14 @@ Use the Conduct CLI to give the user an editable review space and receive struct
 - The preview can run arbitrary JavaScript, including runtime code generation and workers. Scripts can read the presented document and contact external sites, but the sandbox and separate preview token isolate Conduct’s review controls and feedback API. Prefer pinned library versions and keep preview content stable while the user reviews it.
 - Keep reviewable text in the DOM, not in images, canvas, or CSS-generated content. Prefer stable content during a review.
 
+## Claude Code plan mode
+
+When the user wants Conduct to handle Claude Code’s native plan approval, install its hook with `conduct install claude --scope user` for all projects or `--scope project` for the current project. Use the scope authorized by the user. Restart Claude Code after installation. Uninstall with the matching `conduct uninstall claude --scope …` command.
+
+Once installed, write the plan in Claude’s normal plan file and call `ExitPlanMode` as usual. The hook opens Conduct and waits for the human. Do not launch a second presenter or run a separate polling command. **Approve plan** allows the tool with the reviewed input; **Request changes** denies it and returns inline feedback. Address the open comments and suggested edits, update the plan, and call `ExitPlanMode` again. Do not implement after a change request, timeout, cancellation, or stale review. Do not auto-submit decisions on the human’s behalf.
+
+This hook continues the current conversation and preserves implementation permissions. Its snapshots and feedback are under `~/.claude/conduct/reviews/` (or `CLAUDE_CONFIG_DIR/conduct/reviews/`). Normal document reviews below use **Send to agent** and do not approve Claude’s native plan gate. Other agents can use the present/wait flow without Claude-specific hooks.
+
 ## Present and wait
 
 Use the installed `conduct` binary. From a source checkout, use `bun /absolute/path/to/conduct/src/cli.ts` instead. Keep source and feedback paths consistent across all commands.

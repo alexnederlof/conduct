@@ -194,9 +194,43 @@ import { Area, AreaChart } from 'recharts';
 
 Conduct bundles these imports with its provided React runtime (currently 19.2.8). Use HTML modules for direct CDN imports; the TSX bundler resolves installed packages and local files.
 
+## Claude Code plan approval
+
+Conduct can replace Claude Code’s normal plan approval prompt. Install once on macOS or Linux:
+
+```sh
+# From this checkout; use your absolute checkout path from another directory
+bun src/cli.ts install claude --scope user
+
+# Or enable it only for the current project
+bun src/cli.ts install claude --scope project
+```
+
+Restart Claude Code after installation, then enter plan mode as usual. When Claude calls `ExitPlanMode`, the browser opens automatically and Claude waits for your decision:
+
+- **Approve plan** records explicit approval of that snapshot and lets Claude continue in the same conversation. Any open comments and suggested edits accompany the approval.
+- **Request changes** returns the selected quotes, source locations, comments, replacements, and overall feedback to Claude. Claude stays in plan mode, revises its plan, and presents a fresh review.
+
+Saving a comment, closing the browser, or leaving a review idle never approves it. A review expires after 59 minutes; timeout, cancellation, missing content, and changed plan files produce a denial. Every invocation has its own snapshot and feedback file, so previous approvals cannot approve a new plan. Suggestions never rewrite the source automatically. Once a decision is recorded, the review becomes read-only and its server closes; the loaded page can be read until you close it.
+
+The installer merges a synchronous `PreToolUse` hook matching only `ExitPlanMode` into `~/.claude/settings.json` (user scope), or `.claude/settings.local.json` (project scope). It preserves other settings and hooks and is safe to rerun. `CLAUDE_CONFIG_DIR` is respected for user configuration and review storage. A private, persistent runtime with production dependencies is copied under the selected settings directory’s `conduct/runtime/`, so Bun’s cache and the original checkout are no longer needed. Bun itself must remain installed at its configured path. Rerun the installer after upgrading Conduct or moving Bun. The same installer works from a BunX package once published.
+
+Review artifacts live under `~/.claude/conduct/reviews/<unique-id>/`: `plan.md`, `invocation.json`, `session.json` (the private browser URL and expiry), `feedback.json`, and the returned `result.json` after a completed handoff. These are local files containing your plan and comments. Sessions are independent across terminals and projects. Old reviews and runtime versions are retained; remove them manually when no review is running if you no longer need them.
+
+To disable the integration without removing your review history:
+
+```sh
+bun src/cli.ts uninstall claude --scope user
+# Or: bun src/cli.ts uninstall claude --scope project
+```
+
+This integration uses Claude Code’s documented [PreToolUse decision protocol](https://code.claude.com/docs/en/hooks#pretooluse-decision-control). Approval returns both `permissionDecision: "allow"` and the original `updatedInput`; the latter is required to satisfy `ExitPlanMode`’s interaction requirement. Change requests return `"deny"` with the inline feedback. Hook stdout contains only the JSON decision; launch details go to stderr. Implementation permissions are unchanged, and approval does not clear the conversation.
+
+Use a current Claude Code version that supplies `tool_input.plan` and `tool_input.planFilePath` to hooks. Existing deny/ask rules and other hooks can still require a native prompt. If hooks are disabled, blocked by managed settings, cannot launch, or are forcibly killed by Claude, its native permission flow applies. The installer’s one-hour hook deadline leaves a minute for Conduct to deny its own expired review. A skill alone cannot reliably intercept the native gate; no skill invocation is needed once this hook is installed. The full request-changes → revised plan → approval loop was verified in interactive Claude Code 2.1.260. Its headless `-p` mode disabled `ExitPlanMode` in our test, so interactive plan mode is the verified integration.
+
 ## Feedback format
 
-The JSON has `schemaVersion: 1`, a current draft, a monotonic revision, immutable submitted `rounds`, and archived unfinished drafts from older source versions. Each round saves the full source snapshot and SHA-256 hash.
+The JSON has `schemaVersion: 1`, `mode: "feedback" | "plan"`, a current draft, a monotonic revision, immutable submitted `rounds`, and archived unfinished drafts from older source versions. Each round saves the full source snapshot and SHA-256 hash. Plan rounds also require `decision: "approved" | "changes_requested"`; a normal feedback submission is not plan approval.
 
 An entry looks like this:
 
@@ -238,7 +272,7 @@ The server prints a URL ending in a random capability token. Browser API calls a
 | `POST /api/entries` | `{ revision, entry }`, with a comment or edit anchor                         |
 | `POST /api/entry`   | `{ revision, id, action }`, where action is `resolve`, `reopen`, or `delete` |
 | `POST /api/notes`   | `{ revision, notes }`                                                        |
-| `POST /api/submit`  | `{ revision }`, publishing the next immutable round                          |
+| `POST /api/submit`  | `{ revision, decision? }`, publishing the next immutable round               |
 
 Prefer the CLI or feedback file for agents. Writes are serialized and atomically replace the JSON file. One presenter can own each feedback path at a time. Graceful shutdown removes the lock; a later run recovers a lock whose owning process has exited.
 

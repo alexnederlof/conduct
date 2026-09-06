@@ -3,7 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { z } from 'zod/v4';
 import { ConflictError, ReviewStore, acquireLock } from './store';
 import { clientAssets, hash, previewHtml, readSource, renderSource } from './render';
-import { entryInputSchema, type Review, type PublicReview } from './model';
+import { decisionSchema, entryInputSchema, type Review, type PublicReview } from './model';
 
 const mutationSchema = z.object({ revision: z.number().int().nonnegative() });
 const assetsAllowed = new Set([
@@ -30,7 +30,14 @@ const assetsAllowed = new Set([
 const shell =
   '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Conduct</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/__app/app.css"></head><body><div id="root"></div><script src="/__app/app.js"></script></body></html>';
 
-export async function startServer(options: { file: string; out?: string; port?: number }) {
+export async function startServer(options: {
+  file: string;
+  out?: string;
+  port?: number;
+  mode?: Review['mode'];
+  originalPath?: string;
+  isSourceCurrent?: () => Promise<boolean>;
+}) {
   const sourcePath = await realpath(resolve(options.file));
   const outputPath = resolve(options.out ?? `${resolve(options.file)}.feedback.json`);
   if (
@@ -41,13 +48,19 @@ export async function startServer(options: { file: string; out?: string; port?: 
   const release = await acquireLock(outputPath);
   try {
     const source = await readSource(sourcePath);
+    if (options.originalPath) {
+      source.path = options.originalPath;
+      source.name = options.originalPath.split(/[\\/]/).at(-1)!;
+    }
     const [rendered, client] = await Promise.all([renderSource(source), clientAssets()]);
-    const store = await ReviewStore.open(outputPath, source);
+    const store = await ReviewStore.open(outputPath, source, options.mode);
     const token = crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', '');
     const previewToken =
       crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', '');
-    const sourceDirectory = dirname(sourcePath);
-    const stale = async () => hash(await Bun.file(sourcePath).text()) !== source.hash;
+    const sourceDirectory = dirname(source.path);
+    const stale = async () =>
+      hash(await Bun.file(sourcePath).text()) !== source.hash ||
+      (options.isSourceCurrent ? !(await options.isSourceCurrent()) : false);
     const publicState = async (state: Review): Promise<PublicReview> => {
       const { content, ...sourceInfo } = state.source;
       const { rounds, archivedDrafts, source: _, ...rest } = state;
@@ -58,6 +71,7 @@ export async function startServer(options: { file: string; out?: string; port?: 
         stale: await stale().catch(() => true),
         outputPath,
         previewToken,
+        decision: rounds.at(-1)?.decision,
       };
     };
     const server = Bun.serve({
@@ -178,7 +192,8 @@ export async function startServer(options: { file: string; out?: string; port?: 
                 draft.notes = notes;
                 draft.status = 'draft';
               });
-            } else if (url.pathname === '/api/submit') state = await store.submit(revision);
+            } else if (url.pathname === '/api/submit')
+              state = await store.submit(revision, decisionSchema.optional().parse(body.decision));
             else return json({ error: 'Not found' }, 404);
             return json(await publicState(state));
           }

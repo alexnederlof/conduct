@@ -7,6 +7,7 @@
     "conduct": "src/cli.ts"
   },
   "files": [
+    "bun.lock",
     "src",
     "skills",
     "examples/*.md",
