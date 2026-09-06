@@ -14,6 +14,8 @@ Choose Markdown for prose. Choose React when reusable components, lists, or inte
 
 ### React and Tailwind
 
+The shared theme uses warm paper backgrounds, charcoal text, and muted pine accents. Use semantic classes such as `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, and `text-primary` to keep documents and components consistent. Charts can use `var(--chart-1)` through `var(--chart-5)` for the matching palette.
+
 No app scaffolding or Tailwind configuration is needed:
 
 ```tsx

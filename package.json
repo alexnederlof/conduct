@@ -13,6 +13,7 @@
     "skills",
     "docs",
     "AGENTS.md",
+    "CONTRIBUTING.md",
     "examples/*.md",
     "examples/*.html",
     "examples/*.tsx",
@@ -28,7 +29,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun test",
-    "format": "prettier --write bin scripts src tests examples README.md AGENTS.md THIRD_PARTY_NOTICES.md docs skills package.json tsconfig.json",
+    "format": "prettier --write bin scripts src tests examples README.md AGENTS.md CONTRIBUTING.md THIRD_PARTY_NOTICES.md docs skills package.json tsconfig.json",
     "build:binary": "bun scripts/build-binary.ts",
     "test:package": "bun scripts/test-package.ts"
   },

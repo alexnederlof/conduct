@@ -7,10 +7,10 @@
 Review your agent's Markdown, HTML, and React in the browser.<br>
 Comment on the exact words. Suggest a change. Send the review back.
 
-[![Bun 1.3+](https://img.shields.io/badge/Bun-1.3%2B-272c34?style=flat-square)](https://bun.com)
+[![Bun 1.3+](https://img.shields.io/badge/Bun-1.3%2B-303832?style=flat-square)](https://bun.com)
 [![CI](https://github.com/alexnederlof/conduct/actions/workflows/ci.yml/badge.svg)](https://github.com/alexnederlof/conduct/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0723d8?style=flat-square)](LICENSE)
-[![Local first](https://img.shields.io/badge/Local-first-008062?style=flat-square)](#your-files-your-review)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3f6455?style=flat-square)](LICENSE)
+[![Local first](https://img.shields.io/badge/Local-first-646e65?style=flat-square)](#your-files-your-review)
 
 [Get started](#get-started) · [Connect your agent](#connect-your-agent) · [Review Claude plans](#review-claude-code-plans) · [Documentation](#documentation)
 
@@ -20,7 +20,7 @@ Comment on the exact words. Suggest a change. Send the review back.
 
 Your agent has written a plan, a proposal, or a prototype. You have thoughts about _this sentence_, _that assumption_, and _the wording right here_. Conduct gives those thoughts a place beside the work—and gives the agent enough context to act on them.
 
-- **Read comfortably.** Locally bundled Inter, generous spacing, a focused reading mode, and a quiet interface.
+- **Read comfortably.** Warm paper tones, locally bundled Inter, generous spacing, and a focused reading mode.
 - **Comment where it matters.** Selecting text opens a composer immediately. Feedback stays connected to the selected passage.
 - **Suggest better wording.** Propose a replacement or deletion, with the original and suggested text visible together.
 - **Hand it back deliberately.** **Send to agent** publishes a review with exact quotes, context, source snapshots, and suggested replacements.
@@ -48,7 +48,7 @@ bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md
 
 Use the same command with an `.html`, `.tsx`, or `.jsx` file. The first run downloads the package and its dependencies. Conduct opens your default browser, chooses an available port on `127.0.0.1`, and prints the review URL and feedback path. Keep the terminal running while you review; press `Ctrl+C` to stop it.
 
-These commands use `main`; no release is required. Pin a version with `github:alexnederlof/conduct#v0.1.0` once that tag is published, or use a full commit SHA. For standalone downloads and the distinction between GitHub releases and npm’s `latest` tag, see [installation and releases](docs/distribution.md).
+These commands use `main`; no release is required. Pin a released version with `github:alexnederlof/conduct#v0.1.0`, or use a full commit SHA. For the stable release archive, standalone downloads, and npm’s optional `latest` tag, see [installation and releases](docs/distribution.md).
 
 ### Try the included examples
 
@@ -224,7 +224,7 @@ A few useful boundaries:
 | Symptom                                   | What to do                                                                                                                                                                     |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | The browser didn't open                   | Open the full URL printed by the CLI, including its `#` fragment. Use `--no-open` when opening it yourself.                                                                    |
-| A button or chart doesn't respond         | Choose **Interact** in the document toolbar. Return to **Comment** or **Suggest** to select text.                                                                              |
+| A button or chart doesn't respond         | Choose **Interact** in the left sidebar. Return to **Comment** or **Suggest** to select text.                                                                                  |
 | The agent is still waiting                | Click **Send to agent**. Check that `present` and `wait` use the same feedback path and that `--after` is the last round already read.                                         |
 | The source changed                        | Stop and restart the presenter. Your earlier rounds remain saved.                                                                                                              |
 | Another presenter owns the feedback file  | Stop that presenter, or choose a different `--out` path.                                                                                                                       |
@@ -244,7 +244,7 @@ A few useful boundaries:
 
 CI runs the full test suite, TypeScript checks, and packaged `npx` smoke tests on Linux and macOS. Pull requests from outside contributors wait for maintainer approval before workflows run. See [contributor approval and releases](docs/distribution.md#ci-and-contributor-approval).
 
-Bug reports, thoughtful improvements, and small, reproducible examples are welcome. [Open an issue](https://github.com/alexnederlof/conduct/issues) or send a pull request.
+Bug reports, thoughtful improvements, and small, reproducible examples are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, checks, and the pull request process, or [open an issue](https://github.com/alexnederlof/conduct/issues).
 
 ```sh
 bun install

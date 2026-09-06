@@ -38,7 +38,7 @@
         More teams are finding their way back each week. We’re measuring the work that happens here,
         and the people who keep showing up.
       </p>
-      <div id="chart-root" class="bg-white rounded-xl border border-border p-5 mt-8">
+      <div id="chart-root" class="bg-card rounded-xl border border-border p-5 mt-8">
         <p>Loading chart…</p>
       </div>
       <section class="mt-8 border-l-2 border-primary pl-5">
@@ -81,7 +81,7 @@
                   'aria-pressed': metric === value,
                   className:
                     metric === value
-                      ? 'rounded-full bg-primary text-white px-4 py-2 text-xs'
+                      ? 'rounded-full bg-primary text-primary-foreground px-4 py-2 text-xs'
                       : 'rounded-full bg-muted text-muted-foreground px-4 py-2 text-xs',
                 },
                 label,
@@ -94,29 +94,39 @@
             h(
               AreaChart,
               { data, margin: { top: 8, right: 8, bottom: 0, left: -22 } },
-              h(CartesianGrid, { strokeDasharray: '3 3', vertical: false, stroke: '#dae3f3' }),
+              h(CartesianGrid, {
+                strokeDasharray: '3 3',
+                vertical: false,
+                stroke: 'var(--border)',
+              }),
               h(XAxis, {
                 dataKey: 'week',
                 tick: { fontSize: 10 },
-                stroke: '#67768d',
+                stroke: 'var(--muted-foreground)',
                 tickLine: false,
                 axisLine: false,
               }),
               h(YAxis, {
                 tick: { fontSize: 10 },
-                stroke: '#67768d',
+                stroke: 'var(--muted-foreground)',
                 tickLine: false,
                 axisLine: false,
               }),
               h(Tooltip, {
-                contentStyle: { border: '1px solid #dae3f3', borderRadius: 8, fontSize: 12 },
+                contentStyle: {
+                  background: 'var(--popover)',
+                  color: 'var(--popover-foreground)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                },
               }),
               h(Area, {
                 type: 'monotone',
                 dataKey: metric,
                 name: metric === 'teams' ? 'Active teams' : 'Ideas shared',
-                stroke: '#0723d8',
-                fill: '#e7ebff',
+                stroke: 'var(--chart-1)',
+                fill: 'var(--accent)',
                 strokeWidth: 2,
                 isAnimationActive: false,
               }),

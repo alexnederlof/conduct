@@ -15,6 +15,7 @@ export async function installRuntime(directory: string) {
     'LICENSE',
     'README.md',
     'AGENTS.md',
+    'CONTRIBUTING.md',
     'THIRD_PARTY_NOTICES.md',
   ];
   const folders = ['bin', 'src', 'skills', 'examples', 'docs'];
