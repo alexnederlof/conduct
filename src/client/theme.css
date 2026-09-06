@@ -1,0 +1,50 @@
+@layer base {
+  :root {
+    color-scheme: light;
+    --font-reading:
+      'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --conduct-indigo: #0723d8;
+    --conduct-navy: #0f2943;
+    --conduct-ink: #272c34;
+    --conduct-grey-10: #f7f9fd;
+    --conduct-grey-20: #dae3f3;
+    --conduct-grey-40: #67768d;
+    --background: #ffffff;
+    --foreground: var(--conduct-ink);
+    --card: #ffffff;
+    --card-foreground: var(--foreground);
+    --popover: #ffffff;
+    --popover-foreground: var(--foreground);
+    --primary: var(--conduct-indigo);
+    --primary-foreground: #ffffff;
+    --secondary: var(--conduct-grey-10);
+    --secondary-foreground: var(--conduct-navy);
+    --muted: var(--conduct-grey-10);
+    --muted-foreground: #4b5564;
+    --accent: #f5f6ff;
+    --accent-foreground: #031aba;
+    --destructive: #ba0202;
+    --destructive-foreground: #ffffff;
+    --border: #e3e8f0;
+    --input: #c5d2e7;
+    --ring: var(--conduct-indigo);
+    --radius: 0.75rem;
+    --chart-1: #0723d8;
+    --chart-2: #326089;
+    --chart-3: #008062;
+    --chart-4: #a64300;
+    --chart-5: #7700a6;
+    font-family: var(--font-reading);
+    font-synthesis: none;
+    font-optical-sizing: auto;
+  }
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  body {
+    color: var(--foreground);
+    background: var(--background);
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "conduct",
+  "version": "0.1.0",
+  "description": "A local review space for agent-generated Markdown, HTML, and React. Anchored comments, suggested edits, and a structured agent handoff.",
+  "type": "module",
+  "bin": {
+    "conduct": "src/cli.ts"
+  },
+  "files": [
+    "src",
+    "skills",
+    "examples/*.md",
+    "examples/*.html",
+    "examples/*.tsx",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "start": "bun src/cli.ts",
+    "dev": "bun src/cli.ts examples/launch-plan.md --no-open",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run typecheck && bun test",
+    "format": "prettier --write src tests examples README.md skills package.json tsconfig.json"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@radix-ui/react-accordion": "1.2.20",
+    "@radix-ui/react-slot": "1.3.3",
+    "@radix-ui/react-tabs": "1.1.21",
+    "@tailwindcss/oxide": "4.3.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.41.0",
+    "markdown-it": "14.3.1",
+    "parse5": "8.0.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "4.3.3",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "@types/markdown-it": "^14.1.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "happy-dom": "^20.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.0"
+  },
+  "exports": {
+    "./ui": "./src/ui/index.ts",
+    "./ui/*": "./src/ui/*.tsx"
+  }
+}

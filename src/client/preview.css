@@ -1,0 +1,220 @@
+@layer base {
+  body {
+    font-family: var(--font-reading);
+    font-size: 16px;
+    line-height: 1.75;
+  }
+  :where(body:not(:has(> #preview-root))) :where(h1, h2, h3, h4) {
+    color: var(--conduct-navy);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  :where(body:not(:has(> #preview-root))) :where(h1) {
+    font-size: 2.1rem;
+    margin: 0 0 1.25rem;
+  }
+  :where(body:not(:has(> #preview-root))) :where(h2) {
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem;
+  }
+  :where(body:not(:has(> #preview-root))) :where(h3) {
+    font-size: 1.2rem;
+    margin: 1.75rem 0 0.75rem;
+  }
+  :where(body:not(:has(> #preview-root))) :where(p) {
+    margin: 0 0 1.25rem;
+  }
+  :where(body:not(:has(> #preview-root))) :where(a) {
+    color: var(--primary);
+    text-underline-offset: 0.2em;
+  }
+}
+::selection {
+  background: #dae3f3;
+}
+::highlight(mf-comments) {
+  background: #e7ebff;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #a2acf2;
+}
+::highlight(mf-edits) {
+  background: #fff0f0;
+  color: #ba0202;
+  text-decoration: line-through;
+}
+::highlight(mf-active) {
+  background: #cfd7ff;
+  color: inherit;
+}
+.mf-insertion {
+  color: #008062 !important;
+  background: #e0faf3 !important;
+  text-decoration: underline !important;
+  text-decoration-color: #008062 !important;
+  text-underline-offset: 3px !important;
+  padding: 1px 3px !important;
+  margin: 0 2px !important;
+  border-radius: 4px !important;
+  font: inherit !important;
+  cursor: pointer !important;
+}
+.mf-markdown {
+  margin: 0;
+  background: white;
+  color: var(--foreground);
+  font-family: var(--font-reading);
+  font-size: 18px;
+  line-height: 1.85;
+}
+:is(.mf-markdown article, .conduct-prose) {
+  box-sizing: content-box;
+  max-width: 65ch;
+  margin: auto;
+  padding: clamp(32px, 5vw, 64px) clamp(24px, 6vw, 72px) 96px;
+  overflow-wrap: break-word;
+}
+.conduct-prose {
+  font-size: 18px;
+  line-height: 1.85;
+}
+:is(.mf-markdown, .conduct-prose) :is(h1, h2, h3, h4) {
+  color: var(--conduct-navy);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+:is(.mf-markdown, .conduct-prose) h1 {
+  font-size: 2rem;
+  margin: 0 0 24px;
+  letter-spacing: -0.035em;
+}
+:is(.mf-markdown, .conduct-prose) h2 {
+  font-size: 1.4rem;
+  margin: 42px 0 16px;
+}
+:is(.mf-markdown, .conduct-prose) h3 {
+  font-size: 1.125rem;
+  margin: 32px 0 12px;
+}
+:is(.mf-markdown, .conduct-prose) h4 {
+  font-size: 1rem;
+  margin: 28px 0 10px;
+}
+:is(.mf-markdown, .conduct-prose) p {
+  margin: 0 0 24px;
+}
+:is(.mf-markdown, .conduct-prose) h1 + p {
+  color: var(--muted-foreground);
+}
+:is(.mf-markdown, .conduct-prose) strong {
+  font-weight: 600;
+}
+:is(.mf-markdown, .conduct-prose) a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+:is(.mf-markdown, .conduct-prose) hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 36px 0;
+}
+:is(.mf-markdown, .conduct-prose) :is(ul, ol) {
+  padding-left: 25px;
+  margin: 16px 0 28px;
+  list-style: revert;
+}
+:is(.mf-markdown, .conduct-prose) li {
+  padding-left: 6px;
+  margin: 10px 0;
+}
+:is(.mf-markdown, .conduct-prose) li::marker {
+  color: var(--conduct-grey-40);
+}
+:is(.mf-markdown, .conduct-prose) blockquote {
+  border-left: 2px solid #a2acf2;
+  padding: 16px 24px;
+  background: var(--accent);
+  margin: 28px 0;
+  border-radius: 0 10px 10px 0;
+  color: var(--conduct-navy);
+}
+:is(.mf-markdown, .conduct-prose) blockquote p:last-child {
+  margin-bottom: 0;
+}
+:is(.mf-markdown, .conduct-prose) code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.84em;
+  background: var(--muted);
+  padding: 3px 5px;
+  border-radius: 5px;
+  color: var(--conduct-navy);
+}
+:is(.mf-markdown, .conduct-prose) pre {
+  overflow: auto;
+  white-space: pre;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  line-height: 1.75;
+  margin: 28px 0;
+}
+:is(.mf-markdown, .conduct-prose) pre code {
+  background: transparent;
+  padding: 0;
+}
+:is(.mf-markdown, .conduct-prose) table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85em;
+  line-height: 1.6;
+  margin: 28px 0;
+  color: var(--foreground);
+}
+:is(.mf-markdown, .conduct-prose) th {
+  text-align: left;
+  font-weight: 600;
+  background: var(--muted);
+  color: var(--conduct-navy);
+}
+:is(.mf-markdown, .conduct-prose) :is(td, th) {
+  border-bottom: 1px solid var(--border);
+  padding: 13px 16px;
+}
+:is(.mf-markdown, .conduct-prose) img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+:is(.mf-markdown, .conduct-prose) input[type='checkbox'] {
+  accent-color: var(--primary);
+}
+@media (max-width: 600px) {
+  .mf-markdown,
+  .conduct-prose {
+    font-size: 17px;
+  }
+  :is(.mf-markdown article, .conduct-prose) {
+    padding: 32px 24px 64px;
+  }
+  :is(.mf-markdown, .conduct-prose) h1 {
+    font-size: 1.8rem;
+  }
+  :is(.mf-markdown, .conduct-prose) :is(td, th) {
+    padding: 10px 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

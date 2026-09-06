@@ -1,0 +1,10 @@
+node_modules/
+.temp/
+dist/
+*.tgz
+*.feedback.json
+*.feedback.json.lock
+*.feedback.json.*.tmp
+.env
+.env.*
+.DS_Store
