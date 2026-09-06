@@ -14,9 +14,10 @@ export async function installRuntime(directory: string) {
     'bun.lock',
     'LICENSE',
     'README.md',
+    'AGENTS.md',
     'THIRD_PARTY_NOTICES.md',
   ];
-  const folders = ['src', 'skills', 'examples'];
+  const folders = ['src', 'skills', 'examples', 'docs'];
   const paths = [...packageFiles];
   for (const folder of folders) {
     for await (const path of new Bun.Glob(`${folder}/**/*`).scan({ cwd: root, onlyFiles: true }))
@@ -26,7 +27,7 @@ export async function installRuntime(directory: string) {
   const fingerprint = hash(
     (
       await Promise.all(
-        paths.map(async (path) => `${path}\n${await Bun.file(resolve(root, path)).text()}`),
+        paths.map(async (path) => `${path}\n${hash(await Bun.file(resolve(root, path)).bytes())}`),
       )
     ).join('\n'),
   );

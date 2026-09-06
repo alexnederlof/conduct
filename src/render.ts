@@ -17,7 +17,7 @@ const uiModules = new Map([
 ]);
 const uiSource = () =>
   Promise.all(uiNames.map((name) => Bun.file(uiModules.get(`conduct/ui/${name}`)!).text()));
-export const hash = (content: string) =>
+export const hash = (content: string | Uint8Array) =>
   new Bun.CryptoHasher('sha256').update(content).digest('hex');
 
 export async function readSource(path: string): Promise<Source> {
