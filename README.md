@@ -8,6 +8,7 @@ Review your agent's Markdown, HTML, and React in the browser.<br>
 Comment on the exact words. Suggest a change. Send the review back.
 
 [![Bun 1.3+](https://img.shields.io/badge/Bun-1.3%2B-272c34?style=flat-square)](https://bun.com)
+[![CI](https://github.com/alexnederlof/conduct/actions/workflows/ci.yml/badge.svg)](https://github.com/alexnederlof/conduct/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0723d8?style=flat-square)](LICENSE)
 [![Local first](https://img.shields.io/badge/Local-first-008062?style=flat-square)](#your-files-your-review)
 
@@ -29,15 +30,25 @@ No account, API key, database server, or hosted service. Built with Bun.
 
 ## Get started
 
-You need [Bun 1.3 or newer](https://bun.com/docs/installation) and a current browser with the CSS Custom Highlight API.
+Use **Node.js 20+ and npm**, **Bun 1.3.14+**, or a [standalone executable](https://github.com/alexnederlof/conduct/releases). You also need a current browser with the CSS Custom Highlight API.
 
 ### Run directly from GitHub
+
+With Node.js and npm—Bun is included automatically:
+
+```sh
+npx --yes --package github:alexnederlof/conduct conduct ./proposal.md
+```
+
+Or with Bun:
 
 ```sh
 bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md
 ```
 
 Use the same command with an `.html`, `.tsx`, or `.jsx` file. The first run downloads the package and its dependencies. Conduct opens your default browser, chooses an available port on `127.0.0.1`, and prints the review URL and feedback path. Keep the terminal running while you review; press `Ctrl+C` to stop it.
+
+These commands use `main`; no release is required. Pin a version with `github:alexnederlof/conduct#v0.1.0` once that tag is published, or use a full commit SHA. For standalone downloads and the distinction between GitHub releases and npm’s `latest` tag, see [installation and releases](docs/distribution.md).
 
 ### Try the included examples
 
@@ -56,7 +67,7 @@ bun run start examples/launch-plan.md
 | Tabs, cards, and other shadcn components | `bun run start examples/reading-room.tsx` |
 | An interactive chart loaded from a CDN   | `bun run start examples/recharts.html`    |
 
-> **Commands in this guide:** `conduct` means the package's CLI. Without a global install, replace it with `bunx --bun --package github:alexnederlof/conduct conduct`. From a checkout, use `bun /absolute/path/to/conduct/src/cli.ts`.
+> **Commands in this guide:** `conduct` means the package's CLI. Without a global install, replace it with `npx --yes --package github:alexnederlof/conduct conduct` or `bunx --bun --package github:alexnederlof/conduct conduct`. From a checkout, use `bun /absolute/path/to/conduct/src/cli.ts`.
 
 ## Your first review
 
@@ -93,7 +104,7 @@ conduct install skill all --project
 | Claude Code                 | `~/.claude/skills/conduct/` | `.claude/skills/conduct/` |
 | Codex and compatible agents | `~/.agents/skills/conduct/` | `.agents/skills/conduct/` |
 
-`codex` and `agents` share the same location. The installer copies a persistent runtime and writes its absolute command into the skill, so clearing the BunX cache or moving the checkout won't break it. Bun itself must remain installed. Rerun the installer after upgrading Conduct or moving Bun. Restart your agent if the skill does not appear.
+`codex` and `agents` share the same location. The installer copies a persistent runtime, including the executable, and writes its absolute command into the skill. Clearing the npm/BunX cache or moving the checkout won't break it. Rerun the installer after upgrading Conduct. Restart your agent if the skill does not appear.
 
 Then ask your agent:
 
@@ -222,6 +233,7 @@ A few useful boundaries:
 
 ## Documentation
 
+- [Installation and releases](docs/distribution.md) — `npx`, BunX, executables, version pins, CI approval, and publishing.
 - [Authoring documents](docs/authoring.md) — formats, Tailwind, shadcn, local assets, and external libraries.
 - [Working with agents](docs/agents.md) — skills, installation, round cursors, and Claude Code's plan hook.
 - [Feedback and API reference](docs/reference.md) — JSON schema, anchor semantics, persistence, and local endpoints.
@@ -229,6 +241,8 @@ A few useful boundaries:
 - [Contributor and agent guide](AGENTS.md) — architecture, commands, and behaviors to preserve.
 
 ## Contributing
+
+CI runs the full test suite, TypeScript checks, and packaged `npx` smoke tests on Linux and macOS. Pull requests from outside contributors wait for maintainer approval before workflows run. See [contributor approval and releases](docs/distribution.md#ci-and-contributor-approval).
 
 Bug reports, thoughtful improvements, and small, reproducible examples are welcome. [Open an issue](https://github.com/alexnederlof/conduct/issues) or send a pull request.
 

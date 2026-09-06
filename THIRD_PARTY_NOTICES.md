@@ -31,3 +31,7 @@ SOFTWARE.
 ## Inter
 
 Inter is provided locally through `@fontsource-variable/inter`, under the SIL Open Font License 1.1. Its license is included in that dependency. https://rsms.me/inter/
+
+## Bun runtime
+
+The npm package depends on the official Bun binary distribution. Standalone executables embed Bun 1.3.14 and the production packages needed to render documents. Bun's upstream license and linked-library notices are preserved in [docs/licenses/BUN-LICENSE.md](docs/licenses/BUN-LICENSE.md). The corresponding runtime source is available at [oven-sh/bun, tag bun-v1.3.14](https://github.com/oven-sh/bun/tree/bun-v1.3.14); Conduct's source and binary build script are included in this repository so the application can be rebuilt with a modified runtime. Embedded npm dependencies retain their distributed license files.

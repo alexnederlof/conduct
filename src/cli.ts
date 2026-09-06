@@ -73,7 +73,7 @@ async function main() {
     },
   });
   if (values.version) {
-    console.log('0.1.0');
+    console.log((await Bun.file(resolve(import.meta.dir, '../package.json')).json()).version);
     return;
   }
   if (values.help || !positionals.length) {

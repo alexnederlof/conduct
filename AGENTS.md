@@ -6,12 +6,13 @@ This file is the repository's development guide. `CLAUDE.md` is a relative symli
 
 ## Getting started
 
-Requires Bun 1.3 or newer. Run commands from the repository root:
+Requires Bun 1.3.14 or newer and Node.js 20+ for launcher and npm package tests. Run commands from the repository root:
 
 ```sh
 bun install
 bun run dev         # Markdown demo; prints a URL without opening a browser
 bun run check       # TypeScript checking and Bun tests
+bun run test:package # npx delivery without a global Bun installation
 ```
 
 Use `bun src/cli.ts --help` for CLI options. Run `bun src/cli.ts examples/reading-room.tsx --no-open` to exercise React and the bundled components. Servers need restarting after code changes.
@@ -56,3 +57,9 @@ Use Bun for scripts, dependencies, tests, and bundling. Prefer `Bun.file()` and 
 - Keep examples and screenshots public and synthetic. Never commit credentials, local review files, personal machine paths, or private organizational material. Preserve the MIT license and required third-party notices when adapting code.
 
 For product usage, start with [README.md](README.md). For anchoring and storage details, see [the feedback reference](docs/reference.md).
+
+## CI and distribution
+
+CI runs all checks on Linux and macOS. External fork workflows require maintainer approval through GitHub repository settings; preserve the ordinary `pull_request` event, read-only permissions, and action SHA pins. The manual release workflow is restricted to the repository owner on `main`.
+
+`bin/conduct.mjs` is a Node-compatible launcher for the bundled Bun dependency. Keep this entry point valid in Node without a global Bun installation. The native build embeds a production payload and uses its own runtime to load that payload. Agent installers copy the executable so deleting npm caches or downloaded binaries does not break installed skills or hooks. See [distribution details](docs/distribution.md) before changing packaging.

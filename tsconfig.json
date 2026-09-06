@@ -8,9 +8,13 @@
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "types": ["bun"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "conduct/ui": ["./src/ui/index.ts"],
+      "conduct/ui/*": ["./src/ui/*.tsx"]
+    }
   },
-  "include": ["src", "tests", "examples"]
+  "include": ["src", "tests", "examples", "scripts"]
 }
