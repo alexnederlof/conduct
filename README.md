@@ -76,7 +76,7 @@ bun run start examples/launch-plan.md
 3. **Keep reading.** Your saved feedback appears in the sidebar. Click a card to revisit its passage; resolve or reopen feedback as you go. **Focus** hides the sidebar for uninterrupted reading.
 4. **Send to agent.** Add an optional final thought, then submit the review when you're ready for the agent to continue.
 
-Use `⌘ Enter` / `Ctrl Enter` to save a comment or suggestion, and `Escape` to close its composer. Switch to **Interact** to use buttons, tabs, or charts inside an HTML or React preview.
+Use `⌘ Enter` / `Ctrl Enter` to save a comment or suggestion, and `Escape` to close its composer. Links are clickable in every mode; external links open in a new tab. Switch to **Interact** to use buttons, tabs, or charts inside an HTML or React preview.
 
 Saved feedback survives a page reload. Suggestions leave the original file intact; your agent applies the changes after reviewing them. A submission records an immutable round, so you can keep reviewing without losing the previous handoff.
 
@@ -109,6 +109,17 @@ conduct install skill all --project
 Then ask your agent:
 
 > Write the proposal as Markdown and present it with Conduct. Wait for me to send my review, then use the inline feedback to revise it.
+
+### Idle expiry and resuming
+
+Presenters shut down after **30 minutes without interaction**. Clicking, typing, moving the pointer, or scrolling in the review resets the timer; background polling does not. Time spent reading without interaction counts as idle.
+
+```sh
+conduct proposal.md --expire 60   # 60 idle minutes
+conduct proposal.md --expire 0    # Keep running indefinitely
+```
+
+The terminal prints a resume command at startup and on expiry, and a disconnected review shows it too. Run that command to reopen the document with the same feedback file. Saved drafts and submitted rounds remain intact; text still in an unsaved composer is not persisted. The new server prints a fresh review URL. Claude plan hooks use their existing approval deadline instead.
 
 ### Any agent can use the CLI
 

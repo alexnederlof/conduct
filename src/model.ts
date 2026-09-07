@@ -90,11 +90,13 @@ export type PublicReview = Omit<Review, 'source' | 'rounds' | 'archivedDrafts'> 
   stale: boolean;
   outputPath: string;
   previewToken: string;
+  resumeCommand?: string;
   decision?: Decision;
 };
 export type FrameMessage =
   | { type: 'selection'; anchor: Anchor; rect: { x: number; y: number; bottom: number } }
   | { type: 'ready' }
+  | { type: 'activity' }
   | { type: 'focus'; id: string }
   | { type: 'locations'; locations: Record<string, number>; orphaned: string[] }
   | { type: 'preview-error'; message: string };

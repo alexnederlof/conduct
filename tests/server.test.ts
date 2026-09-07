@@ -5,12 +5,16 @@ import { startServer } from '../src/server';
 import type { EntryInput, PublicReview } from '../src/model';
 
 const apps: Awaited<ReturnType<typeof startServer>>[] = [];
-async function fixture(content = '# Review\n\nHello **world**.', extension = 'md') {
+async function fixture(
+  content = '# Review\n\nHello **world**.',
+  extension = 'md',
+  options: { expire?: number; onExpire?: () => void } = {},
+) {
   const directory = resolve('.temp', `server-${crypto.randomUUID()}`);
   await mkdir(directory, { recursive: true });
   const file = `${directory}/draft.${extension}`;
   await Bun.write(file, content);
-  const app = await startServer({ file });
+  const app = await startServer({ file, ...options });
   apps.push(app);
   const url = new URL(app.url);
   const token = url.hash.slice(1);
@@ -50,6 +54,61 @@ const input: EntryInput = {
 };
 
 describe('local presenter', () => {
+  test('expires despite polling and rejected activity, then resumes saved feedback', async () => {
+    let expired = false;
+    const app = await fixture(undefined, 'md', {
+      expire: 0.01,
+      onExpire: () => {
+        expired = true;
+      },
+    });
+    await app.post('/api/notes', { revision: 0, notes: 'Keep this draft' });
+    await app.post('/api/submit', { revision: 1 });
+    const polling = setInterval(() => {
+      void app.get('/api/review').catch(() => {});
+      void app.post('/api/activity', {}, { token: app.previewToken }).catch(() => {});
+      void app.post('/api/activity', {}, { origin: 'https://example.com' }).catch(() => {});
+    }, 50);
+    try {
+      for (let i = 0; i < 40 && !expired; i++) await Bun.sleep(50);
+      expect(expired).toBe(true);
+    } finally {
+      clearInterval(polling);
+    }
+    const resumed = await startServer({ file: app.file });
+    apps.push(resumed);
+    expect(resumed.store.read().notes).toBe('Keep this draft');
+    expect(resumed.store.read().rounds).toHaveLength(1);
+  });
+  test('authenticated user activity extends the idle deadline', async () => {
+    let expired = false;
+    const app = await fixture(undefined, 'md', {
+      expire: 0.01,
+      onExpire: () => {
+        expired = true;
+      },
+    });
+    for (let i = 0; i < 4; i++) {
+      await Bun.sleep(200);
+      expect((await app.post('/api/activity', {})).status).toBe(200);
+    }
+    expect(expired).toBe(false);
+    expect(app.store.read().revision).toBe(0);
+    for (let i = 0; i < 40 && !expired; i++) await Bun.sleep(50);
+    expect(expired).toBe(true);
+  });
+  test('zero disables idle expiry and invalid durations are rejected', async () => {
+    const app = await fixture(undefined, 'md', {
+      expire: 0,
+      onExpire: () => {
+        throw new Error('Unexpected expiry');
+      },
+    });
+    await Bun.sleep(650);
+    expect((await app.get('/api/review')).status).toBe(200);
+    for (const expire of [-1, NaN, Infinity])
+      await expect(startServer({ file: app.file, expire })).rejects.toThrow('Invalid --expire');
+  });
   test('persists a complete review and never modifies the original', async () => {
     const app = await fixture();
     const original = await Bun.file(app.file).text();
@@ -110,7 +169,9 @@ describe('local presenter', () => {
     expect(html).toContain('<table');
     expect(html).toContain('data-source-line="3"');
     expect(html).toContain('/__app/frame.js');
-    expect(response.headers.get('Content-Security-Policy')).toContain('sandbox allow-scripts;');
+    expect(response.headers.get('Content-Security-Policy')).toContain(
+      'sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox;',
+    );
     expect(await (await fetch(app.origin + '/')).text()).toContain('/__app/app.js');
   });
   test('compiles React in the browser with React and Tailwind available outside this project', async () => {

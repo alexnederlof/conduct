@@ -6,6 +6,7 @@ import { reviewSchema } from './model';
 import { markdown, waitForReview } from './feedback';
 import { openBrowser } from './browser';
 import { installOptions } from './install-options';
+import { shellQuote } from './install-runtime';
 export { waitForReview } from './feedback';
 
 const help = `
@@ -25,6 +26,7 @@ const help = `
   --port       Port to listen on (default: available port)
   --out        Feedback JSON path (default: <file>.feedback.json)
   --no-open    Do not launch the browser
+  --expire     Shut down after idle minutes (default: 30; 0: unlimited)
   --after      Wait for a submitted round after this number (default: 0)
   --timeout    Stop waiting after this many seconds (default: 0, unlimited)
   --format     Output format for feedback or wait (default: json)
@@ -59,6 +61,7 @@ async function main() {
     allowPositionals: true,
     options: {
       port: { type: 'string' },
+      expire: { type: 'string' },
       out: { type: 'string' },
       'no-open': { type: 'boolean' },
       after: { type: 'string' },
@@ -154,9 +157,39 @@ async function main() {
     );
     return;
   }
-  const app = await startServer({ file, out: values.out, port: number('port', 0) });
+  const expire = values.expire === undefined ? 30 : Number(values.expire);
+  if (!Number.isFinite(expire) || expire < 0 || values.expire?.trim() === '')
+    throw new Error('Invalid --expire.');
+  const resumeCommand =
+    'BUN_BE_BUN=1 ' +
+    [
+      process.execPath,
+      resolve(Bun.argv[1]!),
+      'present',
+      resolve(file),
+      '--out',
+      output,
+      '--expire',
+      String(expire),
+      ...(values.port ? ['--port', values.port] : []),
+    ]
+      .map(shellQuote)
+      .join(' ');
+  const app = await startServer({
+    file,
+    out: values.out,
+    port: number('port', 0),
+    expire,
+    resumeCommand,
+    onExpire: () => {
+      console.error(
+        `\nConduct stopped after ${expire} idle minutes. Saved feedback is preserved.\nResume: ${resumeCommand}\n`,
+      );
+      process.exit(0);
+    },
+  });
   console.error(
-    `\n  Conduct\n\n  Review   ${app.url}\n  Feedback ${app.outputPath}\n\n  Waiting for your review. Press Ctrl+C to stop.\n`,
+    `\n  Conduct\n\n  Review   ${app.url}\n  Feedback ${app.outputPath}\n\n  Waiting for your review. Press Ctrl+C to stop.\n  ${expire ? `Expires after ${expire} idle minutes.` : 'Idle expiry disabled.'}\n  Resume: ${resumeCommand}\n`,
   );
   let closing = false;
   const shutdown = async () => {

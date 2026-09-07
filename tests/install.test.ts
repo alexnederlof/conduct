@@ -103,7 +103,8 @@ describe('installation commands', () => {
       stdout: 'pipe',
       stderr: 'pipe',
     });
-    expect(await new Response(child.stdout).text()).toBe('0.1.0\n');
+    const { version } = await Bun.file(resolve(import.meta.dir, '../package.json')).json();
+    expect(await new Response(child.stdout).text()).toBe(`${version}\n`);
     expect(await child.exited).toBe(0);
     const notes = resolve(paths[1], '../notes.md');
     await Bun.write(notes, 'My notes');

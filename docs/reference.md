@@ -54,7 +54,13 @@ Prefer the CLI or feedback file for agents. Writes are serialized and atomically
 
 - Reviews are local and single-user. Multiple tabs are supported through revision checks; this is not a collaborative editing server.
 - Edits are **suggestions**, not a rich-text editor or automatic patch applicator. Your agent applies them to the source after review.
-- HTML and React run in a sandboxed iframe without same-origin privileges. External scripts, modules, images, fonts, media, and network requests are allowed. Scripts can read the presented document and communicate with external sites, so use documents and libraries you trust. They cannot access Conduct’s parent UI, browser storage, or feedback API. The preview response also enforces sandboxing when opened directly. Forms, popups, nested frames, and navigation of the parent window remain disabled. Conduct itself has no telemetry or cloud service.
+- HTML and React run in a sandboxed iframe without same-origin privileges. External scripts, modules, images, fonts, media, and network requests are allowed. Scripts can read the presented document and communicate with external sites, so use documents and libraries you trust. They cannot access Conduct’s parent UI, browser storage, or feedback API. The preview response also enforces sandboxing when opened directly. Links open in separate tabs with no opener and no inherited sandbox restrictions; section links scroll within the preview. Forms, nested frames, and navigation of the parent window remain disabled. Conduct itself has no telemetry or cloud service.
 - Interactive views can change or remove selected text. Feedback retains the original anchor and flags an unlocatable selection instead of attaching it to unrelated text. Keep content stable during review.
 - Single-entry documents and components are the supported input. This does not run an existing Next.js/Vite application, execute server components, support MDX, annotate canvas/images, or provide a mobile-native editing experience.
 - Saved review JSON contains the document and feedback. Keep it out of source control unless you intentionally want to share it.
+
+## Presenter lifetime
+
+`conduct present <file> --expire <minutes>` sets the idle lifetime (default `30`, `0` disables expiry; fractional minutes are accepted). User interaction sends an authenticated, origin-checked `POST /api/activity`; it requires no revision and does not change feedback. Authenticated writes reset the timer too. Polling, asset requests, and unauthorized requests do not.
+
+Expiry closes the server and releases the feedback lock. Use the printed resume command to reopen the same source and feedback path, retaining saved drafts and immutable submitted rounds. Reopening uses a new capability URL. Unsaved composer text remains only in the old browser tab. Plan hooks retain their separate bounded approval deadline.

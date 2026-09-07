@@ -137,6 +137,24 @@ function App() {
     if (!response.ok) throw new Error(value.error || 'Could not save feedback.');
     return value;
   }, []);
+  const lastActivity = useRef(-Infinity);
+  const activity = useCallback(() => {
+    if (performance.now() - lastActivity.current < 1000) return;
+    lastActivity.current = performance.now();
+    request('/api/activity', {}).catch((e) => setError(e.message));
+  }, [request]);
+  useEffect(() => {
+    const touch = (event: Event) => {
+      if (event.isTrusted) activity();
+    };
+    const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'];
+    for (const type of events)
+      document.addEventListener(type, touch, { capture: true, passive: true });
+    activity();
+    return () => {
+      for (const type of events) document.removeEventListener(type, touch, true);
+    };
+  }, [activity]);
   const refresh = useCallback(async () => {
     const state = await request('/api/review');
     if (
@@ -193,6 +211,7 @@ function App() {
       )
         return;
       const message = event.data;
+      if (message.type === 'activity') activity();
       if (message.type === 'ready') setReady(true);
       if (message.type === 'preview-error') setPreviewError(message.message);
       if (message.type === 'focus') focusEntry(message.id);
@@ -216,7 +235,7 @@ function App() {
     };
     window.addEventListener('message', receive);
     return () => window.removeEventListener('message', receive);
-  }, [mode, focusEntry]);
+  }, [mode, focusEntry, activity]);
   useEffect(() => {
     if (selection) composer.current?.focus();
   }, [selection, draftKind]);
@@ -454,7 +473,15 @@ function App() {
       <div className="review-content">
         {error && (
           <div className="banner error" role="alert">
-            {error}
+            <div className="error-message">
+              {error}
+              {review.resumeCommand && (
+                <p>
+                  If the server has stopped, resume your saved review by running:{' '}
+                  <code>{review.resumeCommand}</code>
+                </p>
+              )}
+            </div>
             <button aria-label="Dismiss error" onClick={() => setError('')}>
               <Icon name="close" size={16} />
             </button>
@@ -478,7 +505,7 @@ function App() {
                 ref={iframe}
                 src={`/preview?token=${review.previewToken}`}
                 title="Review document"
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
               />
             </div>
             <div className="document-footer">
