@@ -34,10 +34,15 @@ export async function startServer(options: {
   file: string;
   out?: string;
   port?: number;
+  expire?: number;
+  resumeCommand?: string;
+  onExpire?: () => void;
   mode?: Review['mode'];
   originalPath?: string;
   isSourceCurrent?: () => Promise<boolean>;
 }) {
+  const expire = options.expire ?? 30;
+  if (!Number.isFinite(expire) || expire < 0) throw new Error('Invalid --expire.');
   const sourcePath = await realpath(resolve(options.file));
   const outputPath = resolve(options.out ?? `${resolve(options.file)}.feedback.json`);
   if (
@@ -71,9 +76,11 @@ export async function startServer(options: {
         stale: await stale().catch(() => true),
         outputPath,
         previewToken,
+        resumeCommand: options.resumeCommand,
         decision: rounds.at(-1)?.decision,
       };
     };
+    let lastActivity = performance.now();
     const server = Bun.serve({
       hostname: '127.0.0.1',
       port: options.port ?? 0,
@@ -130,6 +137,9 @@ export async function startServer(options: {
             return json({ error: 'Open the complete review URL printed in your terminal.' }, 401);
           if (request.method !== 'GET' && request.headers.get('origin') !== origin)
             return json({ error: 'Invalid origin' }, 403);
+          if (reviewAuthorized && request.method === 'POST') lastActivity = performance.now();
+          if (request.method === 'POST' && url.pathname === '/api/activity')
+            return json({ ok: true });
           if (request.method === 'GET' && url.pathname === '/api/review')
             return json(await publicState(store.read()));
           if (request.method === 'GET' && url.pathname === '/api/export') return json(store.read());
@@ -138,7 +148,7 @@ export async function startServer(options: {
               headers: {
                 ...headers,
                 'Content-Type': 'text/html',
-                'Content-Security-Policy': `sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' http: https: data: blob:; style-src 'unsafe-inline' http: https:; img-src http: https: data: blob:; font-src http: https: data:; media-src http: https: blob:; connect-src http: https: ws: wss: data: blob:; worker-src http: https: blob:; frame-src 'none'; base-uri ${origin}; form-action 'none'`,
+                'Content-Security-Policy': `sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' http: https: data: blob:; style-src 'unsafe-inline' http: https:; img-src http: https: data: blob:; font-src http: https: data:; media-src http: https: blob:; connect-src http: https: ws: wss: data: blob:; worker-src http: https: blob:; frame-src 'none'; base-uri ${origin}; form-action 'none'`,
                 'Access-Control-Allow-Origin': '*',
               },
             });
@@ -225,15 +235,31 @@ export async function startServer(options: {
         }
       },
     });
+    let closing: Promise<void> | undefined;
+    const close = () => {
+      closing ??= (async () => {
+        clearInterval(idleTimer);
+        await server.stop();
+        await release();
+      })();
+      return closing;
+    };
+    const idleTimer =
+      expire > 0
+        ? setInterval(
+            () => {
+              if (performance.now() - lastActivity >= expire * 60_000)
+                void close().then(() => options.onExpire?.());
+            },
+            Math.min(expire * 60_000, 1000),
+          )
+        : undefined;
     return {
       server,
       store,
       url: `http://127.0.0.1:${server.port}/#${token}`,
       outputPath,
-      close: async () => {
-        await server.stop(true);
-        await release();
-      },
+      close,
     };
   } catch (error) {
     await release();

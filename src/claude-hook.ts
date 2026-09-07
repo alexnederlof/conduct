@@ -112,6 +112,7 @@ export async function reviewClaudePlan(
     file,
     out: outputPath,
     mode: 'plan',
+    expire: 0,
     originalPath,
     isSourceCurrent: current,
   });

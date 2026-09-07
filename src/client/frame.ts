@@ -1,5 +1,6 @@
 import { captureAnchor, locateAnchor, rangeFor, textContent } from './anchors';
 import { insertSuggestion } from './suggestions';
+import { followFragment, prepareLink } from './links';
 import type { Entry, FrameMessage } from '../model';
 
 const channel = document.currentScript?.getAttribute('data-channel') ?? '';
@@ -16,6 +17,7 @@ let removeInsertions: Array<() => void> = [];
 function paint() {
   if (!document.body) return;
   observer?.disconnect();
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href]')) prepareLink(link);
   for (const remove of removeInsertions.reverse()) remove();
   removeInsertions = [];
   const text = textContent(document.body);
@@ -98,8 +100,12 @@ document.addEventListener(
   (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const link = target.closest('a');
-    if (link && !link.getAttribute('href')?.startsWith('#')) event.preventDefault();
+    const link = target.closest<HTMLAnchorElement>('a[href]');
+    if (link) {
+      prepareLink(link);
+      followFragment(link, event);
+      return;
+    }
     if (mode !== 'browse' && target.closest('button, input, select, textarea, form')) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -135,3 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
   paint();
   send({ type: 'ready' });
 });
+
+let lastActivity = -Infinity;
+for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart']) {
+  document.addEventListener(
+    type,
+    (event) => {
+      if (!event.isTrusted || performance.now() - lastActivity < 1000) return;
+      lastActivity = performance.now();
+      send({ type: 'activity' });
+    },
+    { capture: true, passive: true },
+  );
+}

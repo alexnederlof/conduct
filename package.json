@@ -1,6 +1,6 @@
 {
   "name": "@alexnederlof/conduct",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A local review space for agent-generated Markdown, HTML, and React. Anchored comments, suggested edits, and a structured agent handoff.",
   "type": "module",
   "bin": {
