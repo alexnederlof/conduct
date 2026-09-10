@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdir, symlink } from 'node:fs/promises';
+import { lstat, mkdir, symlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { installOptions } from '../src/install-options';
 import { configureSkill, skillLocations } from '../src/skill-install';
@@ -123,6 +123,7 @@ describe('installation commands', () => {
     await configureSkill({ ...options, agent: 'claude', uninstall: true });
     await configureSkill({ ...options, agent: 'claude', uninstall: true });
     expect(await Bun.file(paths[0]).exists()).toBe(false);
+    expect((await lstat(resolve(paths[0], '..'))).isDirectory()).toBe(true);
   }, 30_000);
   test('checks all destinations before replacing anything and refuses linked skills', async () => {
     const { context } = await fixture();

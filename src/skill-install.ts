@@ -1,4 +1,4 @@
-import { lstat, mkdir, readdir, rmdir, unlink } from 'node:fs/promises';
+import { lstat, mkdir, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { z } from 'zod/v4';
@@ -89,11 +89,6 @@ export async function configureSkill(options: {
           await unlink(`${directory}/${name}`).catch((error) => {
             if (error.code !== 'ENOENT') throw error;
           });
-        const remaining = await readdir(directory).catch((error) => {
-          if (error.code !== 'ENOENT') throw error;
-          return undefined;
-        });
-        if (remaining?.length === 0) await rmdir(directory);
       }
     } else {
       const template = await Bun.file(
