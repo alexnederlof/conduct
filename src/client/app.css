@@ -118,7 +118,6 @@ button svg {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.6;
-  text-transform: capitalize;
   overflow-wrap: anywhere;
 }
 .review-tools,

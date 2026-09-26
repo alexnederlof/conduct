@@ -61,6 +61,6 @@ Prefer the CLI or feedback file for agents. Writes are serialized and atomically
 
 ## Presenter lifetime
 
-`conduct present <file> --expire <minutes>` sets the idle lifetime (default `30`, `0` disables expiry; fractional minutes are accepted). User interaction sends an authenticated, origin-checked `POST /api/activity`; it requires no revision and does not change feedback. Authenticated writes reset the timer too. Polling, asset requests, and unauthorized requests do not.
+`conduct present <file> --title <title> --expire <minutes>` sets the idle lifetime (default `30`, `0` disables expiry; fractional minutes are accepted). User interaction sends an authenticated, origin-checked `POST /api/activity`; it requires no revision and does not change feedback. Authenticated writes reset the timer too. Polling, asset requests, and unauthorized requests do not.
 
 Expiry closes the server and releases the feedback lock. Use the printed resume command to reopen the same source and feedback path, retaining saved drafts and immutable submitted rounds. Reopening uses a new capability URL. Unsaved composer text remains only in the old browser tab. Plan hooks retain their separate bounded approval deadline.

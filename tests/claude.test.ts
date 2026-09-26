@@ -77,6 +77,7 @@ describe('Claude plan approval', () => {
               headers: { Authorization: `Bearer ${url.hash.slice(1)}` },
             })
           ).json();
+          expect(state.title).toBe('Launch plan');
           expect(
             (await post(app, 'submit', { revision: 1, decision }, state.previewToken)).status,
           ).toBe(401);

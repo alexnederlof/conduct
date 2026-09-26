@@ -123,6 +123,7 @@ function App() {
   }, []);
 
   const accept = useCallback((state: PublicReview) => {
+    document.title = `${state.title} · Conduct`;
     reviewRef.current = state;
     setReview(state);
     if (!notesDirty.current) setNotes(state.notes);
@@ -363,7 +364,6 @@ function App() {
       ? 'Approval recorded. You can return to Claude.'
       : 'Changes requested. Your inline feedback is returning to Claude for revision.'
     : 'Claude is waiting for your review. Read, leave feedback, then approve or request changes.';
-  const title = review.source.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   return (
     <div className={`app ${plan ? 'plan-review' : ''} ${focused ? 'is-focused' : ''}`}>
       <aside className="app-sidebar" aria-label="Review controls">
@@ -380,7 +380,7 @@ function App() {
           <Icon name="file" size={18} />
           <div className="sidebar-label">
             <span className="sidebar-caption">{plan ? 'Plan review' : 'Your document'}</span>
-            <h1>{title}</h1>
+            <h1>{review.title}</h1>
           </div>
         </div>
         <nav className="review-tools" aria-label="Review mode">

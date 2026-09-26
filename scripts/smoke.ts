@@ -25,7 +25,7 @@ export async function smoke(command: string[], directory: string, env = process.
   })) {
     const source = resolve(directory, `proposal.${extension}`);
     await Bun.write(source, content);
-    const child = Bun.spawn([...command, source, '--no-open'], {
+    const child = Bun.spawn([...command, source, '--title', 'Packaged review', '--no-open'], {
       cwd: directory,
       env,
       stdin: 'ignore',
@@ -59,6 +59,10 @@ export async function smoke(command: string[], directory: string, env = process.
       if (!styles.ok || !(await styles.text()).includes('--primary'))
         throw new Error('Tailwind assets missing');
       const state = await (await get('/api/review')).json();
+      if (state.title !== 'Packaged review') throw new Error('Document title missing');
+      const favicon = await get('/__app/favicon.svg');
+      if (!favicon.ok || favicon.headers.get('Content-Type') !== 'image/svg+xml')
+        throw new Error('Favicon missing');
       const submitted = await fetch(`${location.origin}/api/submit`, {
         method: 'POST',
         headers: { ...headers, Origin: location.origin, 'Content-Type': 'application/json' },

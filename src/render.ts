@@ -156,7 +156,7 @@ export async function renderSource(source: Source) {
 }
 
 export async function clientAssets() {
-  const [app, frame, css, previewCss, theme, fontCss, componentCss] = await Promise.all([
+  const [app, frame, css, previewCss, theme, fontCss, componentCss, favicon] = await Promise.all([
     bundle(resolve(packageRoot, 'src/client/app.tsx')),
     bundle(resolve(packageRoot, 'src/client/frame.ts')),
     Bun.file(resolve(packageRoot, 'src/client/app.css')).text(),
@@ -174,6 +174,7 @@ export async function clientAssets() {
           (await Bun.file(resolve(packageRoot, 'src/client/app.tsx')).text()),
       ),
     ),
+    Bun.file(resolve(packageRoot, 'src/client/favicon.svg')).text(),
   ]);
   const fonts = new Map<string, Blob>();
   const fontStyles = fontCss.replaceAll(/\.\/files\/([^)]*)/g, (_, name: string) => {
@@ -184,6 +185,7 @@ export async function clientAssets() {
     app,
     frame,
     fonts,
+    favicon,
     css: componentCss + '\n' + fontStyles + '\n' + theme + '\n' + css,
     previewCss: fontStyles + '\n' + theme + '\n' + previewCss,
   };

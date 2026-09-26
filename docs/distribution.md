@@ -7,7 +7,7 @@
 **No. GitHub Releases already provide everything needed to distribute Conduct.** `npx` accepts a package archive URL as well as an npm package name. The existing release workflow attaches `conduct.tgz`, so users with Node.js 20+ and npm can run:
 
 ```sh
-npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md
+npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md --title "Launch proposal"
 ```
 
 This does not require publishing Conduct to npm, an npm account, a GitHub login, Git, or a global Bun installation. npm still downloads the package's public dependencies, including its bundled Bun runtime. Use the native executable if you want to run without Node or npm too.
@@ -21,14 +21,14 @@ This does not require publishing Conduct to npm, an npm account, a GitHub login,
 
 Use **release assets** for public installation. The temporary **Actions artifacts** in the build workflow are intermediate files with seven-day retention, and the native executable artifacts are not npm packages. The release job copies the tested executables and the npm-compatible archive into a public GitHub release.
 
-`releases/latest/download` redirects to the latest stable GitHub release when fetched. Package managers can reuse cached installations; for a specific version, use `releases/download/v0.1.0/conduct.tgz`. The short npm `@latest` syntax only works after publication to the npm registry. See [npm's supported package specifiers](https://docs.npmjs.com/cli/v11/using-npm/package-spec/).
+`releases/latest/download` redirects to the latest stable GitHub release when fetched. Package managers can reuse cached installations; for a specific version, use `releases/download/v0.3.0/conduct.tgz`. The short npm `@latest` syntax only works after publication to the npm registry. See [npm's supported package specifiers](https://docs.npmjs.com/cli/v11/using-npm/package-spec/).
 
 ## Run directly from GitHub
 
 With Node.js 20+ and npm, you can use the current default branch without installing Bun:
 
 ```sh
-npx --yes --package github:alexnederlof/conduct conduct ./proposal.md
+npx --yes --package github:alexnederlof/conduct conduct ./proposal.md --title "Launch proposal"
 ```
 
 The package installs the official Bun runtime as a dependency. A small Node launcher starts Conduct with that runtime. npm's optional dependencies and install scripts must be enabled. This installs Bun inside the package's dependencies; it does not require a global Bun installation.
@@ -36,10 +36,10 @@ The package installs the official Bun runtime as a dependency. A small Node laun
 If you already use Bun:
 
 ```sh
-bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md
+bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md --title "Launch proposal"
 ```
 
-Neither GitHub command requires a release. An omitted ref selects the repository's default branch (`main`). To select it explicitly, use `github:alexnederlof/conduct#main`. For reproducible use, append `#v0.1.0` for a published tag or `#<full-commit-sha>` for a commit. Quote a specifier containing `#` if your shell requires it.
+Neither GitHub command requires a release. An omitted ref selects the repository's default branch (`main`). To select it explicitly, use `github:alexnederlof/conduct#main`. For reproducible use, append `#v0.3.0` for a published tag or `#<full-commit-sha>` for a commit. Quote a specifier containing `#` if your shell requires it.
 
 Both package managers cache downloads. An unversioned GitHub command is convenient for trying Conduct; an explicit commit or release tag is the reliable way to choose an exact version. `latest` is not a special Git branch or an instruction to pick the newest GitHub release.
 
@@ -58,7 +58,7 @@ Download the matching file, rename it to `conduct`, and make it executable:
 
 ```sh
 chmod +x ./conduct
-./conduct ./proposal.md
+./conduct ./proposal.md --title "Launch proposal"
 ```
 
 These executables include Bun, the presenter, fonts, and production dependencies. Neither Node.js nor Bun needs to be installed. On first launch, the embedded files are unpacked into a versioned directory under `~/.cache/conduct/`. Set `CONDUCT_CACHE_DIR` to choose another directory. No dependency download is needed to present a self-contained document. External libraries in a document can still require a network connection.
@@ -66,10 +66,10 @@ These executables include Bun, the presenter, fonts, and production dependencies
 Each release includes `SHA256SUMS`, license notices, and `conduct.tgz`. The latter is the npm-compatible source package, which can also be run without Git installed:
 
 ```sh
-npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md
+npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md --title "Launch proposal"
 ```
 
-Here, `releases/latest/download` is a **GitHub release redirect**. To pin a release, replace `latest/download` with `download/v0.1.0`.
+Here, `releases/latest/download` is a **GitHub release redirect**. To pin a release, replace `latest/download` with `download/v0.3.0`.
 
 The current binary release targets macOS and Linux. Linux binaries target glibc; Alpine/musl users should use the npm or Bun package. Windows binaries and Windows agent installation are not currently part of the tested release matrix.
 
@@ -80,10 +80,10 @@ The npm package name is **`@alexnederlof/conduct`**; the executable is still **`
 Once a version is published to the npm registry, these commands become available:
 
 ```sh
-npx @alexnederlof/conduct@latest ./proposal.md
-npx @alexnederlof/conduct@0.1.0 ./proposal.md
+npx @alexnederlof/conduct@latest ./proposal.md --title "Launch proposal"
+npx @alexnederlof/conduct@0.3.0 ./proposal.md --title "Launch proposal"
 npm install --global @alexnederlof/conduct
-conduct ./proposal.md
+conduct ./proposal.md --title "Launch proposal"
 ```
 
 `latest` is an npm distribution tag pointing to a published version. A normal stable `npm publish` updates it; a GitHub release alone does not. Until the initial npm publication, use the working GitHub commands above.

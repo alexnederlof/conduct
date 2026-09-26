@@ -28,10 +28,11 @@ const assetsAllowed = new Set([
   '.mjs',
 ]);
 const shell =
-  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Conduct</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/__app/app.css"></head><body><div id="root"></div><script src="/__app/app.js"></script></body></html>';
+  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Conduct</title><link rel="icon" type="image/svg+xml" href="/__app/favicon.svg"><link rel="stylesheet" href="/__app/app.css"></head><body><div id="root"></div><script src="/__app/app.js"></script></body></html>';
 
 export async function startServer(options: {
   file: string;
+  title: string;
   out?: string;
   port?: number;
   expire?: number;
@@ -41,6 +42,8 @@ export async function startServer(options: {
   originalPath?: string;
   isSourceCurrent?: () => Promise<boolean>;
 }) {
+  const title = options.title.trim();
+  if (!title) throw new Error('A non-empty --title is required to present a document.');
   const expire = options.expire ?? 30;
   if (!Number.isFinite(expire) || expire < 0) throw new Error('Invalid --expire.');
   const sourcePath = await realpath(resolve(options.file));
@@ -71,6 +74,7 @@ export async function startServer(options: {
       const { rounds, archivedDrafts, source: _, ...rest } = state;
       return {
         ...rest,
+        title,
         source: sourceInfo,
         roundCount: rounds.length,
         stale: await stale().catch(() => true),
@@ -111,6 +115,7 @@ export async function startServer(options: {
             '/__app/frame.js': [client.frame, 'text/javascript'],
             '/__app/app.css': [client.css, 'text/css'],
             '/__app/preview.css': [client.previewCss, 'text/css'],
+            '/__app/favicon.svg': [client.favicon, 'image/svg+xml'],
           };
           if (request.method === 'GET' && clientFiles[url.pathname]) {
             const [body, type] = clientFiles[url.pathname];

@@ -110,6 +110,11 @@ export async function reviewClaudePlan(
   );
   const app = await startServer({
     file,
+    title: content
+      .trim()
+      .split('\n')[0]!
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/\s+#+$/, ''),
     out: outputPath,
     mode: 'plan',
     expire: 0,

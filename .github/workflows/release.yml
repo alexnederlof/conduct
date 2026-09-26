@@ -95,7 +95,7 @@ jobs:
           With Node.js 20+ and npm, you can also run the packaged source directly:
 
           ```sh
-          npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md
+          npx --yes --package https://github.com/alexnederlof/conduct/releases/latest/download/conduct.tgz conduct ./proposal.md --title "Launch proposal"
           ```
 
           See the README and docs/distribution.md for installation, agent skills, plan hooks, and verification with SHA256SUMS. Conduct is MIT licensed; dependency notices are included.
