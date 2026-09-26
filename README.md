@@ -37,18 +37,20 @@ Use **Node.js 20+ and npm**, **Bun 1.3.14+**, or a [standalone executable](https
 With Node.js and npm—Bun is included automatically:
 
 ```sh
-npx --yes --package github:alexnederlof/conduct conduct ./proposal.md
+npx --yes --package github:alexnederlof/conduct conduct ./proposal.md --title "Launch proposal"
 ```
 
 Or with Bun:
 
 ```sh
-bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md
+bunx --bun --package github:alexnederlof/conduct conduct ./proposal.md --title "Launch proposal"
 ```
+
+Every presentation requires a non-empty `--title`. Choose a short, descriptive name; it appears in the sidebar and browser tab as **Launch proposal · Conduct**.
 
 Use the same command with an `.html`, `.tsx`, or `.jsx` file. The first run downloads the package and its dependencies. Conduct opens your default browser, chooses an available port on `127.0.0.1`, and prints the review URL and feedback path. Keep the terminal running while you review; press `Ctrl+C` to stop it.
 
-These commands use `main`; no release is required. Pin a released version with `github:alexnederlof/conduct#v0.1.0`, or use a full commit SHA. For the stable release archive, standalone downloads, and npm’s optional `latest` tag, see [installation and releases](docs/distribution.md).
+These commands use `main`; no release is required. Pin a released version with `github:alexnederlof/conduct#v0.3.0`, or use a full commit SHA. For the stable release archive, standalone downloads, and npm’s optional `latest` tag, see [installation and releases](docs/distribution.md).
 
 ### Try the included examples
 
@@ -56,16 +58,16 @@ These commands use `main`; no release is required. Pin a released version with `
 git clone https://github.com/alexnederlof/conduct.git
 cd conduct
 bun install
-bun run start examples/launch-plan.md
+bun run start examples/launch-plan.md --title "Launch plan"
 ```
 
-| Try                                      | Command                                   |
-| ---------------------------------------- | ----------------------------------------- |
-| A Markdown launch plan                   | `bun run start examples/launch-plan.md`   |
-| A styled HTML brief                      | `bun run start examples/brief.html`       |
-| A React landing page                     | `bun run start examples/landing-page.tsx` |
-| Tabs, cards, and other shadcn components | `bun run start examples/reading-room.tsx` |
-| An interactive chart loaded from a CDN   | `bun run start examples/recharts.html`    |
+| Try                                      | Command                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| A Markdown launch plan                   | `bun run start examples/launch-plan.md --title "Launch plan"`      |
+| A styled HTML brief                      | `bun run start examples/brief.html --title "Product brief"`        |
+| A React landing page                     | `bun run start examples/landing-page.tsx --title "Landing page"`   |
+| Tabs, cards, and other shadcn components | `bun run start examples/reading-room.tsx --title "Reading room"`   |
+| An interactive chart loaded from a CDN   | `bun run start examples/recharts.html --title "Metrics dashboard"` |
 
 > **Commands in this guide:** `conduct` means the package's CLI. Without a global install, replace it with `npx --yes --package github:alexnederlof/conduct conduct` or `bunx --bun --package github:alexnederlof/conduct conduct`. From a checkout, use `bun /absolute/path/to/conduct/src/cli.ts`.
 
@@ -115,8 +117,8 @@ Then ask your agent:
 Presenters shut down after **30 minutes without interaction**. Clicking, typing, moving the pointer, or scrolling in the review resets the timer; background polling does not. Time spent reading without interaction counts as idle.
 
 ```sh
-conduct proposal.md --expire 60   # 60 idle minutes
-conduct proposal.md --expire 0    # Keep running indefinitely
+conduct proposal.md --title "Launch proposal" --expire 60   # 60 idle minutes
+conduct proposal.md --title "Launch proposal" --expire 0    # Keep running indefinitely
 ```
 
 The terminal prints a resume command at startup and on expiry, and a disconnected review shows it too. Run that command to reopen the document with the same feedback file. Saved drafts and submitted rounds remain intact; text still in an unsaved composer is not persisted. The new server prints a fresh review URL. Claude plan hooks use their existing approval deadline instead.
@@ -127,7 +129,7 @@ The handoff is a local file. An agent needs only a shell and access to that file
 
 ```sh
 # Terminal A: keep the presenter running
-conduct present ./proposal.md
+conduct present ./proposal.md --title "Launch proposal"
 
 # Terminal B: return submitted feedback when the reviewer clicks Send to agent
 conduct wait ./proposal.md --after 0 --timeout 600
@@ -186,7 +188,7 @@ Uninstall preserves review history and cached runtimes. Existing or edited skill
 
 ### A React document is just a component
 
-Save this as `proposal.tsx`, then run `conduct proposal.tsx`:
+Save this as `proposal.tsx`, then run `conduct proposal.tsx --title "Launch proposal"`:
 
 ```tsx
 import { Badge, Card, CardContent, CardHeader, CardTitle } from 'conduct/ui';

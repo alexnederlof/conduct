@@ -15,7 +15,7 @@ bun run check       # TypeScript checking and Bun tests
 bun run test:package # npx delivery without a global Bun installation
 ```
 
-Use `bun src/cli.ts --help` for CLI options. Run `bun src/cli.ts examples/reading-room.tsx --no-open` to exercise React and the bundled components. Servers need restarting after code changes.
+Use `bun src/cli.ts --help` for CLI options. Run `bun src/cli.ts examples/reading-room.tsx --title "Reading room" --no-open` to exercise React and the bundled components. Servers need restarting after code changes.
 
 Use Bun for scripts, dependencies, tests, and bundling. Prefer `Bun.file()` and `Bun.write()` for file contents; Node filesystem utilities are fine for directory operations. Import Zod from `zod/v4`.
 

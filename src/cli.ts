@@ -12,8 +12,8 @@ export { waitForReview } from './feedback';
 const help = `
   Conduct — a local review space for agent-generated work
 
-  conduct <file> [options]
-  conduct present <file> [options]
+  conduct <file> --title <title> [options]
+  conduct present <file> --title <title> [options]
   conduct feedback <file> [--out <path>] [--format json|markdown]
   conduct wait <file> [--after <round>] [--timeout <seconds>]
   conduct skill
@@ -23,6 +23,7 @@ const help = `
   conduct uninstall hook [--global|--project]
 
   Formats      .md, .markdown, .html, .htm, .tsx, .jsx
+  --title      Document title, shown in the sidebar and browser tab (required)
   --port       Port to listen on (default: available port)
   --out        Feedback JSON path (default: <file>.feedback.json)
   --no-open    Do not launch the browser
@@ -37,8 +38,8 @@ const help = `
   --version    Show version
 
   Examples
-    conduct proposal.md
-    conduct concept.tsx --no-open
+    conduct proposal.md --title "Launch proposal"
+    conduct concept.tsx --title "Landing page concept" --no-open
     conduct wait proposal.md --after 0 --timeout 600
     conduct feedback proposal.md --format markdown
     conduct install skill all
@@ -60,6 +61,7 @@ async function main() {
     args: Bun.argv.slice(2),
     allowPositionals: true,
     options: {
+      title: { type: 'string' },
       port: { type: 'string' },
       expire: { type: 'string' },
       out: { type: 'string' },
@@ -160,6 +162,8 @@ async function main() {
   const expire = values.expire === undefined ? 30 : Number(values.expire);
   if (!Number.isFinite(expire) || expire < 0 || values.expire?.trim() === '')
     throw new Error('Invalid --expire.');
+  const title = values.title?.trim();
+  if (!title) throw new Error('A non-empty --title is required to present a document.');
   const resumeCommand =
     'BUN_BE_BUN=1 ' +
     [
@@ -167,6 +171,8 @@ async function main() {
       resolve(Bun.argv[1]!),
       'present',
       resolve(file),
+      '--title',
+      title,
       '--out',
       output,
       '--expire',
@@ -177,6 +183,7 @@ async function main() {
       .join(' ');
   const app = await startServer({
     file,
+    title,
     out: values.out,
     port: number('port', 0),
     expire,

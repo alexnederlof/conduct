@@ -85,6 +85,7 @@ export type Review = z.infer<typeof reviewSchema>;
 export type Round = z.infer<typeof roundSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type PublicReview = Omit<Review, 'source' | 'rounds' | 'archivedDrafts'> & {
+  title: string;
   source: Omit<Source, 'content'>;
   roundCount: number;
   stale: boolean;

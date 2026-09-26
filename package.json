@@ -1,6 +1,6 @@
 {
   "name": "@alexnederlof/conduct",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A local review space for agent-generated Markdown, HTML, and React. Anchored comments, suggested edits, and a structured agent handoff.",
   "type": "module",
   "bin": {
@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "start": "bun src/cli.ts",
-    "dev": "bun src/cli.ts examples/launch-plan.md --no-open",
+    "dev": "bun src/cli.ts examples/launch-plan.md --title 'Launch plan' --no-open",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun test",

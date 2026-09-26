@@ -10,7 +10,7 @@ From a checkout, substitute `bun /path/to/conduct/src/cli.ts` for the binary bel
 
 ```sh
 # Start in a persistent/background terminal. Opens the review for the user.
-conduct present /path/to/proposal.md
+conduct present /path/to/proposal.md --title "Launch proposal"
 
 # Run independently. Prints JSON when the user clicks Send to agent.
 conduct wait /path/to/proposal.md --after 0 --timeout 600
@@ -19,6 +19,8 @@ conduct wait /path/to/proposal.md --after 0 --timeout 600
 conduct feedback /path/to/proposal.md
 conduct feedback /path/to/proposal.md --format markdown
 ```
+
+The agent must supply a non-empty `--title` when presenting any document format. It appears in the sidebar and browser tab; `wait` and `feedback` do not need it.
 
 The default output is `/path/to/proposal.md.feedback.json`. Override it with `--out`, using the same path for all commands. `wait` polls that file; it keeps working if the browser disconnects or the server stops after submission. It returns every submitted round after the requested cursor. Store the highest returned round number and use it as the next `--after` value. No round is consumed or deleted by reading it.
 
@@ -80,6 +82,8 @@ Restart Claude Code after installation, then enter plan mode as usual. When Clau
 Saving a comment, closing the browser, or leaving a review idle never approves it. A review expires after 59 minutes; timeout, cancellation, missing content, and changed plan files produce a denial. Every invocation has its own snapshot and feedback file, so previous approvals cannot approve a new plan. Suggestions never rewrite the source automatically. Once a decision is recorded, the review becomes read-only and its server closes; the loaded page can be read until you close it.
 
 With `--project`, run the command from the project root. The installer merges a synchronous `PreToolUse` hook matching only `ExitPlanMode` into `~/.claude/settings.json` (user scope), or `.claude/settings.local.json` (project scope). It preserves other settings and hooks and is safe to rerun. `CLAUDE_CONFIG_DIR` is respected for user configuration and review storage. A private, persistent runtime with production dependencies is copied under the selected settings directory’s `conduct/runtime/`, so Bun’s cache and the original checkout are no longer needed. The executable is copied into the installed runtime, so the original Bun installation or downloaded executable can be moved or removed. Rerun the installer after upgrading Conduct. The same installer works from a BunX package.
+
+Begin the plan with a descriptive `# Title` heading. The hook uses the first non-empty line, with heading markers removed, as the sidebar and browser-tab title.
 
 Review artifacts live under `~/.claude/conduct/reviews/<unique-id>/`: `plan.md`, `invocation.json`, `session.json` (the private browser URL and expiry), `feedback.json`, and the returned `result.json` after a completed handoff. These are local files containing your plan and comments. Sessions are independent across terminals and projects. Old reviews and runtime versions are retained; remove them manually when no review is running if you no longer need them.
 

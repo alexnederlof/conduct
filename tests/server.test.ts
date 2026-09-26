@@ -8,13 +8,13 @@ const apps: Awaited<ReturnType<typeof startServer>>[] = [];
 async function fixture(
   content = '# Review\n\nHello **world**.',
   extension = 'md',
-  options: { expire?: number; onExpire?: () => void } = {},
+  options: { title?: string; expire?: number; onExpire?: () => void } = {},
 ) {
   const directory = resolve('.temp', `server-${crypto.randomUUID()}`);
   await mkdir(directory, { recursive: true });
   const file = `${directory}/draft.${extension}`;
   await Bun.write(file, content);
-  const app = await startServer({ file, ...options });
+  const app = await startServer({ file, title: 'Review document', ...options });
   apps.push(app);
   const url = new URL(app.url);
   const token = url.hash.slice(1);
@@ -54,6 +54,30 @@ const input: EntryInput = {
 };
 
 describe('local presenter', () => {
+  test('shares the supplied title only through the authenticated review API', async () => {
+    const title = 'R&D <launch> — café';
+    const app = await fixture(undefined, 'md', { title: `  ${title}  ` });
+    const state: PublicReview = await (await app.get('/api/review')).json();
+    expect(state.title).toBe(title);
+    expect(state.source.name).toBe('draft.md');
+    expect(await (await fetch(app.origin)).text()).not.toContain(title);
+    const updated: PublicReview = await (
+      await app.post('/api/notes', { revision: state.revision, notes: 'Reviewing' })
+    ).json();
+    expect(updated.title).toBe(title);
+    await expect(startServer({ file: app.file, title: '   ' })).rejects.toThrow(
+      'A non-empty --title is required',
+    );
+  });
+  test('serves the Conduct favicon referenced by the review shell', async () => {
+    const app = await fixture();
+    const shell = await (await fetch(app.origin)).text();
+    expect(shell).toContain('<link rel="icon" type="image/svg+xml" href="/__app/favicon.svg">');
+    const icon = await fetch(`${app.origin}/__app/favicon.svg`);
+    expect(icon.status).toBe(200);
+    expect(icon.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(await icon.text()).toBe(await Bun.file('src/client/favicon.svg').text());
+  });
   test('expires despite polling and rejected activity, then resumes saved feedback', async () => {
     let expired = false;
     const app = await fixture(undefined, 'md', {
@@ -75,7 +99,7 @@ describe('local presenter', () => {
     } finally {
       clearInterval(polling);
     }
-    const resumed = await startServer({ file: app.file });
+    const resumed = await startServer({ title: 'Review document', file: app.file });
     apps.push(resumed);
     expect(resumed.store.read().notes).toBe('Keep this draft');
     expect(resumed.store.read().rounds).toHaveLength(1);
@@ -107,7 +131,9 @@ describe('local presenter', () => {
     await Bun.sleep(650);
     expect((await app.get('/api/review')).status).toBe(200);
     for (const expire of [-1, NaN, Infinity])
-      await expect(startServer({ file: app.file, expire })).rejects.toThrow('Invalid --expire');
+      await expect(
+        startServer({ title: 'Review document', file: app.file, expire }),
+      ).rejects.toThrow('Invalid --expire');
   });
   test('persists a complete review and never modifies the original', async () => {
     const app = await fixture();
@@ -227,7 +253,9 @@ describe('local presenter', () => {
   });
   test('prevents using the source file as feedback output', async () => {
     const app = await fixture();
-    await expect(startServer({ file: app.file, out: app.file })).rejects.toThrow('overwrite');
+    await expect(
+      startServer({ title: 'Review document', file: app.file, out: app.file }),
+    ).rejects.toThrow('overwrite');
   });
   test('preserves HTML source locations and resolves local relative assets through the session', async () => {
     const app = await fixture(
@@ -251,7 +279,7 @@ describe('local presenter', () => {
       `${directory}/card.tsx`,
       'import "./theme.css"; export default function Card(){return <h1 className="special">Styled</h1>}',
     );
-    const app = await startServer({ file: `${directory}/card.tsx` });
+    const app = await startServer({ file: `${directory}/card.tsx`, title: 'Styled card' });
     apps.push(app);
     const url = new URL(app.url);
     const state: PublicReview = await (
